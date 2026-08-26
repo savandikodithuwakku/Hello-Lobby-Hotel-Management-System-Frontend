@@ -3,12 +3,16 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   BedDouble,
   CalendarDays,
+  ConciergeBell,
   DoorClosed,
   Hotel,
   KeyRound,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
+  Luggage,
   MonitorSmartphone,
+  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +59,40 @@ const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     permission: PERMISSIONS.RESERVATION_READ_OWN,
     hiddenFor: PERMISSIONS.RESERVATION_READ,
+  },
+  // The desk's own screens. Arrivals and departures sit above the inventory
+  // because they are what somebody on shift opens first.
+  {
+    to: "/front-desk",
+    label: "Front desk",
+    icon: ConciergeBell,
+    permission: PERMISSIONS.FRONTDESK_CHECKIN,
+  },
+  {
+    to: "/front-desk/housekeeping",
+    label: "Housekeeping",
+    icon: Sparkles,
+    permission: PERMISSIONS.ROOM_MANAGE_STATUS,
+  },
+  // Staff see every ticket; a guest sees their own, same screen.
+  {
+    to: "/tickets",
+    label: "Service tickets",
+    icon: LifeBuoy,
+    permission: PERMISSIONS.FRONTDESK_TICKET_MANAGE,
+  },
+  {
+    to: "/tickets",
+    label: "Get help",
+    icon: LifeBuoy,
+    permission: PERMISSIONS.FRONTDESK_TICKET_CREATE,
+    hiddenFor: PERMISSIONS.FRONTDESK_TICKET_MANAGE,
+  },
+  {
+    to: "/baggage",
+    label: "Baggage",
+    icon: Luggage,
+    permission: PERMISSIONS.FRONTDESK_BAGGAGE_MANAGE,
   },
   { to: "/rooms", label: "Rooms", icon: DoorClosed, permission: PERMISSIONS.ROOM_READ },
   // The catalogue admin table is inventory work, so it follows room:read.

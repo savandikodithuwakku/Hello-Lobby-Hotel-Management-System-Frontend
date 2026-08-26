@@ -24,6 +24,12 @@ import RoomCatalogPage from "../features/rooms/pages/RoomCatalogPage.tsx";
 import ReservationsListPage from "../features/reservations/pages/ReservationsListPage.tsx";
 import ReservationCreatePage from "../features/reservations/pages/ReservationCreatePage.tsx";
 import ReservationDetailPage from "../features/reservations/pages/ReservationDetailPage.tsx";
+import FrontDeskBoardPage from "../features/frontdesk/pages/FrontDeskBoardPage.tsx";
+import HousekeepingBoardPage from "../features/frontdesk/pages/HousekeepingBoardPage.tsx";
+import TicketsListPage from "../features/frontdesk/pages/TicketsListPage.tsx";
+import TicketCreatePage from "../features/frontdesk/pages/TicketCreatePage.tsx";
+import TicketDetailPage from "../features/frontdesk/pages/TicketDetailPage.tsx";
+import BaggagePage from "../features/frontdesk/pages/BaggagePage.tsx";
 import ForbiddenPage from "../features/errors/pages/ForbiddenPage.tsx";
 import NotFoundPage from "../features/errors/pages/NotFoundPage.tsx";
 
@@ -108,6 +114,51 @@ const AppRouter = () => (
     >
       <Route path="/reservations" element={<ReservationsListPage />} />
       <Route path="/reservations/:id" element={<ReservationDetailPage />} />
+    </Route>
+
+    {/* The front desk. Arrivals and departures are gated on the permissions
+        that name them; the board itself needs either, because a person who can
+        only check guests out still has to see who is leaving. */}
+    <Route
+      element={
+        <ProtectedRoute
+          permissions={[PERMISSIONS.FRONTDESK_CHECKIN, PERMISSIONS.FRONTDESK_CHECKOUT]}
+        />
+      }
+    >
+      <Route path="/front-desk" element={<FrontDeskBoardPage />} />
+    </Route>
+
+    {/* Housekeeping is inventory work rather than desk work, so it follows the
+        permission that lets somebody actually service a room. */}
+    <Route element={<ProtectedRoute permissions={[PERMISSIONS.ROOM_MANAGE_STATUS]} />}>
+      <Route path="/front-desk/housekeeping" element={<HousekeepingBoardPage />} />
+    </Route>
+
+    {/* Tickets. A guest holding only frontdesk:ticket_create gets the same
+        screens, narrowed by the API to the tickets they raised. */}
+    <Route
+      element={
+        <ProtectedRoute
+          permissions={[PERMISSIONS.FRONTDESK_TICKET_MANAGE, PERMISSIONS.FRONTDESK_TICKET_CREATE]}
+        />
+      }
+    >
+      <Route path="/tickets" element={<TicketsListPage />} />
+      <Route path="/tickets/new" element={<TicketCreatePage />} />
+      <Route path="/tickets/:id" element={<TicketDetailPage />} />
+    </Route>
+
+    {/* Baggage. A guest can see what the desk is holding for them; only staff
+        can record bags being taken in or handed back. */}
+    <Route
+      element={
+        <ProtectedRoute
+          permissions={[PERMISSIONS.FRONTDESK_BAGGAGE_MANAGE, PERMISSIONS.RESERVATION_READ_OWN]}
+        />
+      }
+    >
+      <Route path="/baggage" element={<BaggagePage />} />
     </Route>
 
     <Route path="/forbidden" element={<ForbiddenPage />} />

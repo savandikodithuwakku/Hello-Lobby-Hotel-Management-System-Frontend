@@ -432,3 +432,123 @@ export interface PaymentStatistics {
   refunded: { amount: number; count: number };
   byMethod: Record<PaymentMethod, { amount: number; count: number }>;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Guest service tickets                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type TicketCategory =
+  | "maintenance"
+  | "housekeeping"
+  | "amenities"
+  | "noise"
+  | "internet"
+  | "food_and_drink"
+  | "billing"
+  | "security"
+  | "other";
+
+export type TicketPriority = "low" | "medium" | "high" | "urgent";
+
+export type TicketStatus =
+  | "open"
+  | "acknowledged"
+  | "in_progress"
+  | "on_hold"
+  | "resolved"
+  | "closed"
+  | "cancelled";
+
+export interface TicketPerson {
+  id: string | null;
+  name?: string;
+  email?: string | null;
+}
+
+export interface TicketUpdate {
+  note: string;
+  /** Set when this update also moved the ticket along. */
+  status: TicketStatus | null;
+  at: string;
+  by: TicketPerson;
+}
+
+export interface Ticket {
+  id: string;
+  reference: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  guest: TicketPerson;
+  reportedBy: TicketPerson;
+  assignedTo: TicketPerson | null;
+  reservation: { id: string | null; reference?: string };
+  room: { id: string | null; roomNumber?: string; floor?: number };
+  /** When somebody should have picked it up by. */
+  respondBy: string;
+  /** Nobody has picked it up and that target has passed. */
+  isOverdue: boolean;
+  /** How long the guest waited before somebody picked it up, in minutes. */
+  responseMinutes: number | null;
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  resolution: string;
+  /** True while this ticket is what is keeping the room out of order. */
+  blocksRoom: boolean;
+  updates: TicketUpdate[];
+  /** Statuses this ticket may move to right now (detail responses only). */
+  allowedTransitions?: TicketStatus[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketStatistics {
+  byStatus: Record<TicketStatus, number>;
+  byPriority: Record<TicketPriority, number>;
+  active: number;
+  overdue: number;
+  unassigned: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Baggage held at the desk                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type BaggageStatus = "stored" | "collected" | "unclaimed";
+
+export interface Baggage {
+  id: string;
+  /** The number written on the ticket handed to the guest. */
+  tag: string;
+  status: BaggageStatus;
+  /** One name for the screen, whether the person has an account or not. */
+  guestName: string;
+  guest: TicketPerson | null;
+  reservation: { id: string | null; reference?: string };
+  bagCount: number;
+  description: string;
+  location: string;
+  receivedAt: string;
+  receivedBy: TicketPerson;
+  collectedAt: string | null;
+  collectedBy: TicketPerson | null;
+  /** Who actually walked away with them - not always the guest. */
+  collectedByName: string;
+  isCollected: boolean;
+  daysHeld: number;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BaggageStatistics {
+  stored: number;
+  /** Held longer than the policy allows. Somebody has to look at these. */
+  unclaimed: number;
+  heldNow: number;
+  piecesHeld: number;
+  unclaimedAfterDays: number;
+}
