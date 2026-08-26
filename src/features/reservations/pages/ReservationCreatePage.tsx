@@ -205,7 +205,7 @@ const ReservationCreatePage = () => {
                   </div>
                   <div className="flex justify-between py-1">
                     <dt className="text-ink-muted">Advance to confirm</dt>
-                    <dd className="tabular-nums text-amber-400">
+                    <dd className="tabular-nums text-amber-700">
                       {formatPrice(estimateAdvance(total))}
                     </dd>
                   </div>

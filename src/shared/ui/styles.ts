@@ -71,10 +71,10 @@ export const actionRow = "flex flex-wrap justify-end gap-3";
  * classes it can find as literals in the source.
  */
 export const statusPill: Record<UserStatus, string> = {
-  active: "bg-success/10 text-emerald-400",
-  pending_verification: "bg-warning/10 text-amber-400",
+  active: "bg-success/10 text-emerald-700",
+  pending_verification: "bg-warning/10 text-amber-700",
   inactive: "bg-ink-dim/15 text-ink-muted",
-  suspended: "bg-danger/10 text-red-400",
+  suspended: "bg-danger/10 text-red-700",
 };
 
 /** Layout shared by every status pill, whatever its colour. */

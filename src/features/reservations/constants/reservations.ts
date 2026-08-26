@@ -37,13 +37,13 @@ export const STATUS_HINTS: Record<ReservationStatus, string> = {
 
 /** One complete class list per status; Tailwind needs literals. */
 export const statusPill: Record<ReservationStatus, string> = {
-  pending: "bg-warning/10 text-amber-400",
-  confirmed: "bg-brand/15 text-indigo-300",
-  checked_in: "bg-success/10 text-emerald-400",
-  checked_out: "bg-accent/10 text-fuchsia-300",
+  pending: "bg-warning/10 text-amber-700",
+  confirmed: "bg-brand/15 text-indigo-700",
+  checked_in: "bg-success/10 text-emerald-700",
+  checked_out: "bg-accent/10 text-fuchsia-700",
   completed: "bg-ink-dim/15 text-ink-muted",
-  cancelled: "bg-danger/10 text-red-400",
-  no_show: "bg-danger/10 text-red-400",
+  cancelled: "bg-danger/10 text-red-700",
+  no_show: "bg-danger/10 text-red-700",
 };
 
 export const STATUS_OPTIONS: SelectOption<ReservationStatus>[] = toSelectOptions(STATUS_LABELS);

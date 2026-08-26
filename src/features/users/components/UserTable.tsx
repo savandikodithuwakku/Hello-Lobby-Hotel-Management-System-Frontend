@@ -10,7 +10,7 @@ const MUTED_CELL = `${CELL} text-ink-muted`;
 
 /** Small amber "unverified" marker shown next to an unconfirmed address. */
 export const UnverifiedFlag = () => (
-  <span className="ml-2 inline-block border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[0.68rem] font-semibold tracking-[0.04em] text-amber-400 uppercase">
+  <span className="ml-2 inline-block border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[0.68rem] font-semibold tracking-[0.04em] text-amber-700 uppercase">
     unverified
   </span>
 );

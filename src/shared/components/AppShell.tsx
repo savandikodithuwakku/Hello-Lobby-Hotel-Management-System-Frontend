@@ -127,7 +127,7 @@ const AppShell = ({ title, actions = null, children }: AppShellProps) => {
 
         <button
           type="button"
-          className={`${MENU_ITEM} mt-auto text-[#ff6b6b] hover:bg-[#ff6b6b]/[0.06]`}
+          className={`${MENU_ITEM} mt-auto text-danger hover:bg-danger/10`}
           onClick={handleSignOut}
         >
           <LogOut size={18} aria-hidden="true" />
@@ -142,7 +142,7 @@ const AppShell = ({ title, actions = null, children }: AppShellProps) => {
             {actions}
             <div className="flex items-center gap-3 border border-line bg-surface px-4 py-2">
               <span
-                className="flex size-8 items-center justify-center bg-brand text-[0.85rem] font-bold"
+                className="flex size-8 items-center justify-center bg-brand text-[0.85rem] font-bold text-white"
                 aria-hidden="true"
               >
                 {initialsOf(user?.name)}

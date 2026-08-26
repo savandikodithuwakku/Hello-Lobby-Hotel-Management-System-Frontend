@@ -106,8 +106,8 @@ const ImagesEditor = ({ images, onChange, max = 12 }: ImagesEditorProps) => {
                   type="button"
                   className={
                     image.isPrimary
-                      ? "inline-flex cursor-default items-center gap-1 text-[0.72rem] font-semibold text-amber-400"
-                      : "inline-flex cursor-pointer items-center gap-1 text-[0.72rem] text-ink-dim transition-colors duration-300 hover:text-amber-400"
+                      ? "inline-flex cursor-default items-center gap-1 text-[0.72rem] font-semibold text-amber-700"
+                      : "inline-flex cursor-pointer items-center gap-1 text-[0.72rem] text-ink-dim transition-colors duration-300 hover:text-amber-700"
                   }
                   onClick={() => makePrimary(image.url)}
                   aria-label={image.isPrimary ? "Primary image" : "Make this the primary image"}

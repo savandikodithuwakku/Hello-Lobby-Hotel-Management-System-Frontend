@@ -186,7 +186,7 @@ const RoomTypeDetailPage = () => {
                       loading="lazy"
                     />
                     {image.isPrimary && (
-                      <p className="border-t border-line px-2 py-1 text-[0.7rem] tracking-[0.04em] text-amber-400 uppercase">
+                      <p className="border-t border-line px-2 py-1 text-[0.7rem] tracking-[0.04em] text-amber-700 uppercase">
                         Primary
                       </p>
                     )}

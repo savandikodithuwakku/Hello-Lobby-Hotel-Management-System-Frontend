@@ -46,7 +46,7 @@ const Deadline = ({ label, date, settled }: { label: string; date: string; settl
   return (
     <p
       className={`flex items-center gap-2 text-[0.85rem] ${
-        settled ? "text-emerald-400" : overdue ? "text-red-400" : "text-ink-muted"
+        settled ? "text-emerald-700" : overdue ? "text-red-700" : "text-ink-muted"
       }`}
     >
       {settled ? (
@@ -108,7 +108,7 @@ const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: Payme
       </div>
 
       {!payment.advanceSettled && (
-        <p className="mt-4 border border-warning/30 bg-warning/10 px-3 py-2 text-[0.85rem] text-amber-400">
+        <p className="mt-4 border border-warning/30 bg-warning/10 px-3 py-2 text-[0.85rem] text-amber-700">
           {formatPrice(payment.advanceAmount - payment.amountPaid)} more is needed to confirm this
           reservation and hold the room.
         </p>

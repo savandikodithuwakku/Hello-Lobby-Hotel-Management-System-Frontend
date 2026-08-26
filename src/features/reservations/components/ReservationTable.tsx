@@ -38,7 +38,7 @@ const ReservationRow = ({ reservation, showGuest }: { reservation: Reservation; 
     <td className={`${CELL} whitespace-nowrap tabular-nums`}>
       {formatPrice(reservation.pricing.totalAmount)}
       {reservation.payment.balanceDue > 0 && (
-        <span className="block text-[0.78rem] text-amber-400">
+        <span className="block text-[0.78rem] text-amber-700">
           {formatPrice(reservation.payment.balanceDue)} due
         </span>
       )}

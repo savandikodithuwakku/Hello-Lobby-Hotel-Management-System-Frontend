@@ -4,8 +4,8 @@ import type { ApiFieldError } from "../../../shared/api/types.ts";
 type AlertVariant = "error" | "success";
 
 const VARIANTS: Record<AlertVariant, string> = {
-  error: "border-danger/20 bg-danger/10 text-[#ff8a8a]",
-  success: "border-success/20 bg-success/10 text-[#a7f3d0]",
+  error: "border-danger/20 bg-danger/10 text-red-700",
+  success: "border-success/20 bg-success/10 text-emerald-700",
 };
 
 interface AlertMessageProps {

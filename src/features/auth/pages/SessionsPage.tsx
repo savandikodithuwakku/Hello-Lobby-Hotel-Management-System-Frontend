@@ -85,7 +85,7 @@ const SessionsPage = () => {
                   {session.current ? <ShieldCheck size={18} /> : <Monitor size={18} />}
                   {session.device}
                   {session.current && (
-                    <span className="border border-success/25 bg-success/10 px-2 py-0.5 text-[0.7rem] font-semibold tracking-[0.04em] text-[#a7f3d0] uppercase">
+                    <span className="border border-success/25 bg-success/10 px-2 py-0.5 text-[0.7rem] font-semibold tracking-[0.04em] text-emerald-700 uppercase">
                       This device
                     </span>
                   )}

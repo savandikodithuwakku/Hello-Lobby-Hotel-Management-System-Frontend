@@ -29,12 +29,12 @@ export const STATUS_LABELS: Record<RoomStatus, string> = {
  * as literals, so these are never assembled at runtime.
  */
 export const statusPill: Record<RoomStatus, string> = {
-  available: "bg-success/10 text-emerald-400",
-  reserved: "bg-brand/15 text-indigo-300",
-  occupied: "bg-accent/10 text-fuchsia-300",
-  cleaning: "bg-warning/10 text-amber-400",
-  maintenance: "bg-warning/10 text-orange-300",
-  out_of_service: "bg-danger/10 text-red-400",
+  available: "bg-success/10 text-emerald-700",
+  reserved: "bg-brand/15 text-indigo-700",
+  occupied: "bg-accent/10 text-fuchsia-700",
+  cleaning: "bg-warning/10 text-amber-700",
+  maintenance: "bg-warning/10 text-orange-700",
+  out_of_service: "bg-danger/10 text-red-700",
 };
 
 /**
