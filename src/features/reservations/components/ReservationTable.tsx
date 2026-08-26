@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { CalendarX } from "lucide-react";
 import type { Reservation } from "../../../shared/api/types.ts";
 import { link } from "../../../shared/ui/styles.ts";
-import { formatPrice } from "../../../shared/ui/format.ts";
+import { formatNights, formatOccupancy, formatPrice } from "../../../shared/ui/format.ts";
 import ReservationStatusPill from "./ReservationStatusPill.tsx";
 import { formatStay } from "../constants/reservations.ts";
 
@@ -29,8 +29,7 @@ const ReservationRow = ({ reservation, showGuest }: { reservation: Reservation; 
     <td className={`${CELL} whitespace-nowrap`}>
       {formatStay(reservation.checkIn, reservation.checkOut)}
       <span className="block text-[0.78rem] text-ink-dim">
-        {reservation.nights} night{reservation.nights === 1 ? "" : "s"}, {reservation.guests} guest
-        {reservation.guests === 1 ? "" : "s"}
+        {formatNights(reservation.nights)}, {formatOccupancy(reservation.guests)}
       </span>
     </td>
     <td className={CELL}>

@@ -1,23 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { BedDouble, Plus } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type {
-  Pagination as PaginationData,
-  Room,
-  RoomStatistics,
-  RoomType,
-} from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
+import { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import { buttonPrimary, buttonSecondary, card } from "../../../shared/ui/styles.ts";
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
 import type { RouteState } from "../../auth/types.ts";
 import { roomTypesApi, roomsApi } from "../services/rooms.api.ts";
-import { DEFAULT_ROOM_SORT, PAGE_SIZE, STATUS_LABELS } from "../constants/rooms.ts";
-import type { RoomFilterPatch, RoomFilterState } from "../types.ts";
+import { DEFAULT_ROOM_SORT, STATUS_LABELS } from "../constants/rooms.ts";
+import type { RoomFilterState } from "../types.ts";
 import RoomFilters from "../components/RoomFilters.tsx";
 import RoomTable from "../components/RoomTable.tsx";
 
@@ -63,79 +58,27 @@ const StatusTile = ({
 );
 
 const RoomsListPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const filters = readFilters(searchParams);
+  const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
   const notice = (location.state as RouteState | null)?.message || null;
-
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [pagination, setPagination] = useState<PaginationData | null>(null);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [statistics, setStatistics] = useState<RoomStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
 
   const { search, roomType, status, floor, isActive, sort, page } = filters;
 
-  // The type list and the status counts frame the table; they are fetched once
-  // rather than on every filter change.
-  useEffect(() => {
-    roomTypesApi
-      .list({ limit: 100, sort: "name" })
-      .then((response) => setRoomTypes(response.data.roomTypes))
-      .catch(() => setRoomTypes([]));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    Promise.all([
-      roomsApi.list({ search, roomType, status, floor, isActive, sort, page, limit: PAGE_SIZE }),
-      roomsApi.statistics(),
-    ])
-      .then(([list, stats]) => {
-        if (cancelled) return;
-        setRooms(list.data.rooms);
-        setPagination(list.data.pagination);
-        setStatistics(stats.data);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => {
-        if (cancelled) return;
-        setError(apiError);
-        setRooms([]);
-        setPagination(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, roomType, status, floor, isActive, sort, page]);
-
-  // Any filter change returns to page one; changing the page keeps the filters.
-  const updateFilters = useCallback(
-    (patch: RoomFilterPatch) => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          Object.entries(patch).forEach(([key, value]) => {
-            if (value) next.set(key, value);
-            else next.delete(key);
-          });
-          if (!("page" in patch)) next.delete("page");
-          return next;
-        },
-        { replace: true }
-      );
-    },
-    [setSearchParams]
+  // The type list frames the filter bar and never changes with the filters, so
+  // it is fetched once.
+  const { data: roomTypes } = useApiData(
+    () => roomTypesApi.list({ limit: 100, sort: "name" }).then((r) => r.data.roomTypes),
+    []
   );
 
-  const resetFilters = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
+  const { data, loading, error } = useApiData(
+    () =>
+      Promise.all([
+        roomsApi.list({ search, roomType, status, floor, isActive, sort, page, limit: PAGE_SIZE }),
+        roomsApi.statistics(),
+      ]).then(([list, stats]) => ({ ...list.data, statistics: stats.data })),
+    [search, roomType, status, floor, isActive, sort, page]
+  );
 
   return (
     <AppShell
@@ -155,18 +98,18 @@ const RoomsListPage = () => {
         </>
       }
     >
-      {statistics && (
+      {data?.statistics && (
         <section
           className="mb-8 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4"
           aria-label="Inventory at a glance"
         >
           <StatusTile
             label="All rooms"
-            count={statistics.active}
+            count={data.statistics.active}
             active={status === ""}
             onClick={() => updateFilters({ status: "" })}
           />
-          {(Object.entries(statistics.byStatus) as [keyof typeof STATUS_LABELS, number][]).map(
+          {(Object.entries(data.statistics.byStatus) as [keyof typeof STATUS_LABELS, number][]).map(
             ([key, count]) => (
               <StatusTile
                 key={key}
@@ -186,16 +129,16 @@ const RoomsListPage = () => {
 
         <RoomFilters
           filters={filters}
-          roomTypes={roomTypes}
+          roomTypes={roomTypes ?? []}
           onChange={updateFilters}
           onReset={resetFilters}
-          resultCount={loading ? null : (pagination?.total ?? 0)}
+          resultCount={loading ? null : (data?.pagination.total ?? 0)}
         />
 
-        <RoomTable rooms={rooms} loading={loading} />
+        <RoomTable rooms={data?.rooms ?? []} loading={loading} />
 
         <Pagination
-          pagination={pagination}
+          pagination={data?.pagination ?? null}
           disabled={loading}
           onPageChange={(nextPage) => updateFilters({ page: String(nextPage) })}
         />

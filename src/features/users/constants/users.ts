@@ -1,5 +1,12 @@
 import type { Address, Role, UserStatus } from "../../../shared/api/types.ts";
+import { formatDateTime } from "../../../shared/ui/format.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
 import { ROLES, ROLE_LABELS } from "../../auth/constants/rbac.ts";
+
+// The user screens show dates and page sizes the way every other screen does.
+export { formatDateTime, formatDateOnly } from "../../../shared/ui/format.ts";
+export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export type { SelectOption };
 
 export const USER_STATUSES = {
   ACTIVE: "active",
@@ -15,11 +22,6 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
   [USER_STATUSES.PENDING_VERIFICATION]: "Pending verification",
 };
 
-export interface SelectOption<TValue extends string = string> {
-  value: TValue;
-  label: string;
-}
-
 /** Ordered highest first, matching the backend role ladder. */
 export const ROLE_OPTIONS: SelectOption<Role>[] = [
   { value: ROLES.SUPER_ADMIN, label: ROLE_LABELS[ROLES.SUPER_ADMIN] },
@@ -28,9 +30,7 @@ export const ROLE_OPTIONS: SelectOption<Role>[] = [
   { value: ROLES.CUSTOMER, label: ROLE_LABELS[ROLES.CUSTOMER] },
 ];
 
-export const STATUS_OPTIONS: SelectOption<UserStatus>[] = (
-  Object.entries(STATUS_LABELS) as [UserStatus, string][]
-).map(([value, label]) => ({ value, label }));
+export const STATUS_OPTIONS: SelectOption<UserStatus>[] = toSelectOptions(STATUS_LABELS);
 
 export const SORT_OPTIONS: SelectOption[] = [
   { value: "-createdAt", label: "Newest first" },
@@ -39,8 +39,6 @@ export const SORT_OPTIONS: SelectOption[] = [
   { value: "-name", label: "Name Z-A" },
   { value: "-lastLoginAt", label: "Recently active" },
 ];
-
-export const PAGE_SIZE = 20;
 
 export const ADDRESS_FIELDS: { key: keyof Address; label: string }[] = [
   { key: "line1", label: "Address line 1" },
@@ -78,16 +76,6 @@ export const formatAddress = (address: Partial<Address> | null | undefined): str
   return parts.length > 0 ? parts.join(", ") : null;
 };
 
-export const formatDate = (value: string | null): string => {
-  if (!value) return "Never";
-
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-};
-
-export const formatDateOnly = (value: string | null): string => {
-  if (!value) return "\u2014";
-  return new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" });
-};
+/** Like `formatDateTime`, but "Never" reads better than a dash for a login. */
+export const formatDate = (value: string | null): string =>
+  value ? formatDateTime(value) : "Never";

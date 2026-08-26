@@ -10,7 +10,7 @@ import {
   fieldLabel,
   input,
 } from "../../../shared/ui/styles.ts";
-import { formatDateOnly, formatPrice } from "../../../shared/ui/format.ts";
+import { formatDateOnly, formatPrice, pluralize } from "../../../shared/ui/format.ts";
 import { daysUntil } from "../constants/reservations.ts";
 
 interface PaymentPanelProps {
@@ -50,8 +50,8 @@ const Deadline = ({ label, date, settled }: { label: string; date: string; settl
       {settled
         ? " — paid"
         : overdue
-          ? ` — ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} overdue`
-          : ` — ${days} day${days === 1 ? "" : "s"} left`}
+          ? ` — ${pluralize(Math.abs(days), "day")} overdue`
+          : ` — ${pluralize(days, "day")} left`}
     </p>
   );
 };

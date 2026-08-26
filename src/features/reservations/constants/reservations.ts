@@ -1,4 +1,8 @@
 import type { ReservationStatus } from "../../../shared/api/types.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+
+export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export type { SelectOption };
 
 export const RESERVATION_STATUSES = {
   PENDING: "pending",
@@ -42,14 +46,7 @@ export const statusPill: Record<ReservationStatus, string> = {
   no_show: "bg-danger/10 text-red-400",
 };
 
-export interface SelectOption<TValue extends string = string> {
-  value: TValue;
-  label: string;
-}
-
-export const STATUS_OPTIONS: SelectOption<ReservationStatus>[] = (
-  Object.entries(STATUS_LABELS) as [ReservationStatus, string][]
-).map(([value, label]) => ({ value, label }));
+export const STATUS_OPTIONS: SelectOption<ReservationStatus>[] = toSelectOptions(STATUS_LABELS);
 
 export const SORT_OPTIONS: SelectOption[] = [
   { value: "-createdAt", label: "Recently booked" },
@@ -59,7 +56,6 @@ export const SORT_OPTIONS: SelectOption[] = [
   { value: "-totalAmount", label: "Highest value" },
 ];
 
-export const PAGE_SIZE = 20;
 export const DEFAULT_SORT = "-createdAt";
 
 /** Mirrors the API's advance policy, for the quote shown before booking. */

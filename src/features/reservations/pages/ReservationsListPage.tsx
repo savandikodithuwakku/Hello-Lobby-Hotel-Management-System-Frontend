@@ -1,17 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { CalendarPlus } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type {
-  Pagination as PaginationData,
-  Reservation,
-  ReservationStatistics,
-  RoomType,
-} from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
+import { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import { buttonPrimary, card } from "../../../shared/ui/styles.ts";
-import { formatPrice } from "../../../shared/ui/format.ts";
+import { formatPrice, pluralize } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
@@ -19,8 +14,8 @@ import { useAuth } from "../../auth/hooks/useAuth.ts";
 import type { RouteState } from "../../auth/types.ts";
 import { roomTypesApi } from "../../rooms/services/rooms.api.ts";
 import reservationsApi from "../services/reservations.api.ts";
-import { DEFAULT_SORT, PAGE_SIZE } from "../constants/reservations.ts";
-import type { ReservationFilterPatch, ReservationFilterState } from "../types.ts";
+import { DEFAULT_SORT } from "../constants/reservations.ts";
+import type { ReservationFilterState } from "../types.ts";
 import ReservationFilters from "../components/ReservationFilters.tsx";
 import ReservationTable from "../components/ReservationTable.tsx";
 
@@ -51,81 +46,40 @@ const Tile = ({ label, value, hint }: { label: string; value: string; hint?: str
  * bookings" page to keep in step.
  */
 const ReservationsListPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const filters = readFilters(searchParams);
+  const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
   const notice = (location.state as RouteState | null)?.message || null;
   const { hasPermission } = useAuth();
 
   const isStaff = hasPermission(PERMISSIONS.RESERVATION_READ);
 
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [pagination, setPagination] = useState<PaginationData | null>(null);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [statistics, setStatistics] = useState<ReservationStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-
   const { search, status, roomType, from, to, unpaid, sort, page } = filters;
 
-  useEffect(() => {
-    if (!isStaff) return;
-
-    roomTypesApi
-      .list({ limit: 100, sort: "name" })
-      .then((response) => setRoomTypes(response.data.roomTypes))
-      .catch(() => setRoomTypes([]));
-
-    reservationsApi
-      .statistics()
-      .then((response) => setStatistics(response.data))
-      .catch(() => setStatistics(null));
-  }, [isStaff]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    reservationsApi
-      .list({ search, status, roomType, from, to, unpaid, sort, page, limit: PAGE_SIZE })
-      .then((response) => {
-        if (cancelled) return;
-        setReservations(response.data.reservations);
-        setPagination(response.data.pagination);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => {
-        if (cancelled) return;
-        setError(apiError);
-        setReservations([]);
-        setPagination(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, status, roomType, from, to, unpaid, sort, page]);
-
-  const updateFilters = useCallback(
-    (patch: ReservationFilterPatch) => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          Object.entries(patch).forEach(([key, value]) => {
-            if (value) next.set(key, value);
-            else next.delete(key);
-          });
-          if (!("page" in patch)) next.delete("page");
-          return next;
-        },
-        { replace: true }
-      );
-    },
-    [setSearchParams]
+  // The room types and the front-desk counts are staff-only framing around the
+  // table, and do not change with the filters, so they load once.
+  const { data: framing } = useApiData(
+    () =>
+      isStaff
+        ? Promise.all([
+            roomTypesApi.list({ limit: 100, sort: "name" }),
+            reservationsApi.statistics(),
+          ]).then(([types, stats]) => ({
+            roomTypes: types.data.roomTypes,
+            statistics: stats.data,
+          }))
+        : Promise.resolve(null),
+    [isStaff]
   );
+
+  const { data, loading, error } = useApiData(
+    () =>
+      reservationsApi
+        .list({ search, status, roomType, from, to, unpaid, sort, page, limit: PAGE_SIZE })
+        .then((r) => r.data),
+    [search, status, roomType, from, to, unpaid, sort, page]
+  );
+
+  const statistics = framing?.statistics;
 
   return (
     <AppShell
@@ -150,7 +104,7 @@ const ReservationsListPage = () => {
           <Tile
             label="Outstanding"
             value={formatPrice(statistics.outstanding.amount)}
-            hint={`${statistics.outstanding.count} booking${statistics.outstanding.count === 1 ? "" : "s"}`}
+            hint={pluralize(statistics.outstanding.count, "booking")}
           />
         </section>
       )}
@@ -161,15 +115,15 @@ const ReservationsListPage = () => {
 
         <ReservationFilters
           filters={filters}
-          roomTypes={roomTypes}
+          roomTypes={framing?.roomTypes ?? []}
           onChange={updateFilters}
-          onReset={() => setSearchParams({}, { replace: true })}
-          resultCount={loading ? null : (pagination?.total ?? 0)}
+          onReset={resetFilters}
+          resultCount={loading ? null : (data?.pagination.total ?? 0)}
           compact={!isStaff}
         />
 
         <ReservationTable
-          reservations={reservations}
+          reservations={data?.reservations ?? []}
           loading={loading}
           showGuest={isStaff}
           emptyHint={
@@ -180,7 +134,7 @@ const ReservationsListPage = () => {
         />
 
         <Pagination
-          pagination={pagination}
+          pagination={data?.pagination ?? null}
           disabled={loading}
           onPageChange={(nextPage) => updateFilters({ page: String(nextPage) })}
         />

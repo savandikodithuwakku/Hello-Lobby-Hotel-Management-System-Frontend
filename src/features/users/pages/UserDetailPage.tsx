@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -13,10 +13,12 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { Address, Role, User, UserStatus } from "../../../shared/api/types.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { Address, ApiResponse, Role, User, UserStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
   actionRow,
@@ -100,55 +102,50 @@ const UserDetailPage = () => {
   const location = useLocation();
   const { user: actor } = useAuthUser();
 
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [notice, setNotice] = useState<string | null>(
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditableForm | null>(null);
+  const [confirming, setConfirming] = useState<Confirming>(null);
+
+  const { data: loaded, loading, error: loadError } = useApiData(
+    () => usersApi.get(id).then((r) => r.data.user),
+    [id]
+  );
+
+  // Every administrative write returns the updated account, so it replaces the
+  // loaded copy without a second round trip.
+  const [edited, setEdited] = useState<User | null>(null);
+  const user = edited ?? loaded;
+
+  const { busy, error: actionError, notice, setError, setNotice, run } = useAsyncAction(
     (location.state as RouteState | null)?.message || null
   );
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<EditableForm | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [confirming, setConfirming] = useState<Confirming>(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    usersApi
-      .get(id)
-      .then((response) => {
-        setUser(response.data.user);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => setError(apiError))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(load, [load]);
+  const error = actionError ?? loadError;
 
   // An actor may only act on accounts strictly below their own level, and
   // never on their own record through these admin screens.
   const isSelf = actor.id === id;
-  const canManage = user !== null && !isSelf && ROLE_LEVELS[actor.role] > ROLE_LEVELS[user.role];
+  const canManage = user != null && !isSelf && ROLE_LEVELS[actor.role] > ROLE_LEVELS[user.role];
 
-  const run = async (
-    action: () => Promise<{ data: { user?: User } | null }>,
+  /**
+   * Runs one administrative write. Some endpoints answer with the updated
+   * account and some with nothing, so the update is applied only when there is
+   * one, and the confirmation panel always closes.
+   */
+  const runUserAction = async (
+    action: () => Promise<ApiResponse<{ user?: User } | null>>,
     successMessage: string
-  ): Promise<boolean> => {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await action();
-      if (response.data?.user) setUser(response.data.user);
-      setNotice(successMessage);
-      setConfirming(null);
-      return true;
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-      return false;
-    } finally {
-      setBusy(false);
-    }
+  ) => {
+    const done = await run(
+      action,
+      (data) => {
+        if (data?.user) setEdited(data.user);
+      },
+      successMessage
+    );
+
+    setConfirming(null);
+    return done;
   };
 
   const startEditing = () => {
@@ -162,7 +159,7 @@ const UserDetailPage = () => {
     event.preventDefault();
     if (!form) return;
 
-    const saved = await run(
+    const saved = await runUserAction(
       () =>
         usersApi.update(id, {
           name: form.name,
@@ -174,10 +171,13 @@ const UserDetailPage = () => {
     if (saved) setEditing(false);
   };
 
+  /**
+   * A permanent delete leaves nothing to show, so the screen navigates back to
+   * the list and reports the outcome there instead of updating itself.
+   */
   const deletePermanently = async () => {
     if (!user) return;
-    setBusy(true);
-    setError(null);
+
     try {
       await usersApi.remove(id, user.email);
       navigate("/users", {
@@ -186,7 +186,6 @@ const UserDetailPage = () => {
       });
     } catch (apiError) {
       setError(apiError as ApiClientError);
-      setBusy(false);
     }
   };
 
@@ -366,7 +365,7 @@ const UserDetailPage = () => {
                   value={user.role}
                   disabled={!canManage || busy}
                   onChange={(event) =>
-                    run(
+                    runUserAction(
                       () => usersApi.changeRole(id, event.target.value as Role),
                       "Role updated. Every session for this account was signed out."
                     )
@@ -399,7 +398,7 @@ const UserDetailPage = () => {
                   value={user.status}
                   disabled={!canManage || busy}
                   onChange={(event) =>
-                    run(
+                    runUserAction(
                       () => usersApi.changeStatus(id, event.target.value as UserStatus),
                       "Status updated."
                     )
@@ -473,7 +472,7 @@ const UserDetailPage = () => {
                 busy={busy}
                 onCancel={() => setConfirming(null)}
                 onConfirm={() =>
-                  run(() => usersApi.revokeSessions(id), "All sessions for this user were ended.")
+                  runUserAction(() => usersApi.revokeSessions(id), "All sessions for this user were ended.")
                 }
               />
             )}
@@ -486,7 +485,7 @@ const UserDetailPage = () => {
                 busy={busy}
                 onCancel={() => setConfirming(null)}
                 onConfirm={() =>
-                  run(() => usersApi.deactivate(id), "Account deactivated and signed out.")
+                  runUserAction(() => usersApi.deactivate(id), "Account deactivated and signed out.")
                 }
               />
             )}

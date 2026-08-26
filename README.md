@@ -28,15 +28,28 @@ VITE_API_URL=http://localhost:5000/api/v1
 - `src/features/auth`: auth pages, guards, context and API calls
 - `src/features/dashboard`: protected dashboard page
 - `src/features/users`: user management - list, create and detail screens
+- `src/features/rooms`: room types, rooms and the guest-facing catalogue
+- `src/features/reservations`: availability, bookings, the front desk and payments
 - `src/features/errors`: 403 / 404 pages
-- `src/shared/api`: HTTP client with automatic token refresh, plus the API types
-- `src/shared/components`: the signed-in application shell and detail lists
-- `src/shared/ui`: the Tailwind class recipes reused across features
+- `src/shared/api`: HTTP client with automatic token refresh, the query-string
+  builder every service uses, and the API types
+- `src/shared/hooks`: the four things every screen does - filters in the URL
+  (`useUrlFilters`), loading data (`useApiData`), writing to the API
+  (`useAsyncAction`) and creating a record (`useCreateForm`)
+- `src/shared/components`: the application shell, pagination, confirmations and
+  the labelled filter fields (`form/`)
+- `src/shared/constants` / `src/shared/types`: values and shapes with no better
+  home, such as the list page size and the `<select>` option type
+- `src/shared/ui`: the Tailwind class recipes, the page layout recipes and the
+  money, date and plural formatting
 - `src/index.css`: the only stylesheet - imports Tailwind and declares the
   design tokens as a Tailwind theme
 
 A feature folder owns everything it needs, so it can be moved or reused as a
-unit; only genuinely shared code lives in `src/shared`.
+unit; only genuinely shared code lives in `src/shared`. The rule for promoting
+something into `shared` is that a second feature needed the same thing - a
+filter bar, a paged list, a currency format - rather than that it looked
+reusable.
 
 ## Styling
 

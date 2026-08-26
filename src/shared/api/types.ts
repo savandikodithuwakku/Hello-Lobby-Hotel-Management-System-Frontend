@@ -225,6 +225,14 @@ export interface AvailableRoom extends Room {
   quote: { nights: number; ratePerNight: number; roomSubtotal: number };
 }
 
+/** Why an availability search came back empty, so the UI can explain itself. */
+export type AvailabilityReason =
+  | "over-capacity"
+  | "no-room-types"
+  | "no-rooms"
+  | "fully-booked"
+  | null;
+
 export interface AvailabilityResult {
   checkIn: string;
   checkOut: string;
@@ -232,6 +240,10 @@ export interface AvailabilityResult {
   rooms: AvailableRoom[];
   total: number;
   unavailable: number;
+  reason: AvailabilityReason;
+  /** The largest party any room on sale for this search could take. */
+  largestOccupancy: number;
+  requestedGuests: number | null;
 }
 
 export interface ReservationStatistics {

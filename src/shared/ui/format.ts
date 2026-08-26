@@ -38,4 +38,20 @@ export const dayFromToday = (offset = 0): string => {
   return toDateInput(date);
 };
 
-export const formatNights = (nights: number): string => `${nights} night${nights === 1 ? "" : "s"}`;
+/**
+ * "1 room" / "3 rooms". English plurals are mostly a trailing "s", so the
+ * irregular ones pass their own plural.
+ */
+export const pluralize = (count: number, singular: string, plural = `${singular}s`): string =>
+  `${count} ${count === 1 ? singular : plural}`;
+
+export const formatNights = (nights: number): string => pluralize(nights, "night");
+
+export const formatOccupancy = (guests: number): string => pluralize(guests, "guest");
+
+/**
+ * The line under a filter bar. `null` means the list is still loading, which is
+ * why the count is optional rather than defaulting to zero.
+ */
+export const formatResultCount = (count: number | null, noun: string, plural?: string): string =>
+  count === null ? "Loading..." : `${pluralize(count, noun, plural)} found`;

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { BedDouble, CalendarSearch, Users } from "lucide-react";
 import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { AvailableRoom, RoomType } from "../../../shared/api/types.ts";
+import type { AvailabilityReason, AvailableRoom, RoomType } from "../../../shared/api/types.ts";
 import {
   buttonPrimary,
   fieldGroup,
@@ -10,7 +10,7 @@ import {
   input,
   select,
 } from "../../../shared/ui/styles.ts";
-import { dayFromToday, formatNights, formatPrice } from "../../../shared/ui/format.ts";
+import { dayFromToday, formatNights, formatPrice, pluralize } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import { roomTypesApi } from "../../rooms/services/rooms.api.ts";
 import reservationsApi from "../services/reservations.api.ts";
@@ -51,6 +51,8 @@ const AvailabilitySearch = ({
   const [rooms, setRooms] = useState<AvailableRoom[]>([]);
   const [nights, setNights] = useState(0);
   const [unavailable, setUnavailable] = useState(0);
+  const [reason, setReason] = useState<AvailabilityReason>(null);
+  const [largestOccupancy, setLargestOccupancy] = useState(0);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiClientError | null>(null);
@@ -77,6 +79,8 @@ const AvailabilitySearch = ({
       setRooms(response.data.rooms);
       setNights(response.data.nights);
       setUnavailable(response.data.unavailable);
+      setReason(response.data.reason);
+      setLargestOccupancy(response.data.largestOccupancy);
     } catch (apiError) {
       setError(apiError as ApiClientError);
       setRooms([]);
@@ -88,6 +92,33 @@ const AvailabilitySearch = ({
 
   const setField = <TKey extends keyof StayQuery>(key: TKey, value: StayQuery[TKey]) =>
     onStayChange({ ...stay, [key]: value });
+
+  const typeName = roomTypes.find((type) => type.id === stay.roomType)?.name;
+
+  /**
+   * Nothing came back - say which of the three reasons it was, because "no
+   * rooms free" reads as a date clash even when the party was simply too big.
+   */
+  const emptyMessage = () => {
+    switch (reason) {
+      case "over-capacity":
+        return typeName
+          ? `A ${typeName} room sleeps ${largestOccupancy}, but you asked for ${stay.guests} guests.` +
+              " Pick a larger room type, or book more than one room."
+          : `No room type takes ${stay.guests} guests - the largest sleeps ${largestOccupancy}.` +
+              " Book more than one room for a party this size.";
+      case "no-room-types":
+        return typeName
+          ? `${typeName} is not on sale at the moment.`
+          : "No room types are on sale at the moment.";
+      case "no-rooms":
+        return typeName
+          ? `There are no ${typeName} rooms in the inventory yet.`
+          : "There are no bookable rooms in the inventory yet.";
+      default:
+        return "No rooms are free for those dates.";
+    }
+  };
 
   return (
     <div>
@@ -174,8 +205,8 @@ const AvailabilitySearch = ({
         {searched && !error && (
           <p className="mb-4 border-t border-line pt-4 text-[0.85rem] text-ink-muted">
             {rooms.length === 0
-              ? "No rooms are free for those dates."
-              : `${rooms.length} room${rooms.length === 1 ? "" : "s"} free for ${formatNights(nights)}`}
+              ? emptyMessage()
+              : `${pluralize(rooms.length, "room")} free for ${formatNights(nights)}`}
             {unavailable > 0 && (
               <span className="text-ink-dim">
                 {" "}

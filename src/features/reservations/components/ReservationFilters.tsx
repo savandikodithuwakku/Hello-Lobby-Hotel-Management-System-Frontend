@@ -1,7 +1,11 @@
-import { useEffect, useId, useState } from "react";
-import { Search, X } from "lucide-react";
+import { useId } from "react";
 import type { RoomType } from "../../../shared/api/types.ts";
-import { buttonText, fieldLabel, inputWithIcon, select } from "../../../shared/ui/styles.ts";
+import DateField from "../../../shared/components/form/DateField.tsx";
+import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
+import SearchField from "../../../shared/components/form/SearchField.tsx";
+import SelectField from "../../../shared/components/form/SelectField.tsx";
+import { formatResultCount } from "../../../shared/ui/format.ts";
+import type { SelectOption } from "../../../shared/types/options.ts";
 import { SORT_OPTIONS, STATUS_OPTIONS } from "../constants/reservations.ts";
 import type { ReservationFilterPatch, ReservationFilterState } from "../types.ts";
 
@@ -29,167 +33,80 @@ const ReservationFilters = ({
   resultCount,
   compact = false,
 }: ReservationFiltersProps) => {
-  const searchId = useId();
-  const statusId = useId();
-  const typeId = useId();
-  const fromId = useId();
-  const toId = useId();
-  const sortId = useId();
   const unpaidId = useId();
 
-  const [searchDraft, setSearchDraft] = useState(filters.search);
-
-  useEffect(() => {
-    setSearchDraft(filters.search);
-  }, [filters.search]);
-
-  useEffect(() => {
-    if (searchDraft === filters.search) return undefined;
-
-    const timer = setTimeout(() => onChange({ search: searchDraft }), 350);
-    return () => clearTimeout(timer);
-  }, [searchDraft, filters.search, onChange]);
-
-  const hasFilters = Boolean(
-    filters.search || filters.status || filters.roomType || filters.from || filters.to || filters.unpaid
-  );
+  const typeOptions: SelectOption[] = roomTypes.map((type) => ({
+    value: type.id,
+    label: type.name,
+  }));
 
   return (
-    <section className="mb-6" aria-label="Filter reservations">
-      <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-3 min-[1280px]:grid-cols-6">
-        <div>
-          <label className={fieldLabel} htmlFor={searchId}>
-            Search
-          </label>
-          <div className="relative flex items-center">
-            <Search
-              className="pointer-events-none absolute left-4 text-ink-dim"
-              size={18}
-              aria-hidden="true"
-            />
-            <input
-              id={searchId}
-              type="search"
-              className={inputWithIcon}
-              placeholder={compact ? "Booking reference" : "Reference, guest or room"}
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className={fieldLabel} htmlFor={statusId}>
-            Status
-          </label>
-          <select
-            id={statusId}
-            className={select}
-            value={filters.status}
-            onChange={(event) => onChange({ status: event.target.value })}
-          >
-            <option value="">All statuses</option>
-            {STATUS_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {!compact && (
-          <div>
-            <label className={fieldLabel} htmlFor={typeId}>
-              Room type
-            </label>
-            <select
-              id={typeId}
-              className={select}
-              value={filters.roomType}
-              onChange={(event) => onChange({ roomType: event.target.value })}
-            >
-              <option value="">All types</option>
-              {roomTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div>
-          <label className={fieldLabel} htmlFor={fromId}>
-            Staying from
-          </label>
+    <FilterPanel
+      label="Filter reservations"
+      gridClassName="grid grid-cols-1 gap-4 min-[900px]:grid-cols-3 min-[1280px]:grid-cols-6"
+      resultSummary={formatResultCount(resultCount, "reservation")}
+      hasFilters={Boolean(
+        filters.search ||
+          filters.status ||
+          filters.roomType ||
+          filters.from ||
+          filters.to ||
+          filters.unpaid
+      )}
+      onReset={onReset}
+      footerExtra={
+        <label className="inline-flex cursor-pointer items-center gap-2 text-[0.85rem] text-ink-muted">
           <input
-            id={fromId}
-            type="date"
-            className={select}
-            value={filters.from}
-            onChange={(event) => onChange({ from: event.target.value })}
+            id={unpaidId}
+            type="checkbox"
+            className="size-4 accent-brand"
+            checked={filters.unpaid === "true"}
+            onChange={(event) => onChange({ unpaid: event.target.checked ? "true" : "" })}
           />
-        </div>
+          Outstanding balance only
+        </label>
+      }
+    >
+      <SearchField
+        label="Search"
+        placeholder={compact ? "Booking reference" : "Reference, guest or room"}
+        value={filters.search}
+        onChange={(search) => onChange({ search })}
+      />
 
-        <div>
-          <label className={fieldLabel} htmlFor={toId}>
-            Staying until
-          </label>
-          <input
-            id={toId}
-            type="date"
-            className={select}
-            value={filters.to}
-            onChange={(event) => onChange({ to: event.target.value })}
-          />
-        </div>
+      <SelectField
+        label="Status"
+        placeholder="All statuses"
+        options={STATUS_OPTIONS}
+        value={filters.status}
+        onChange={(status) => onChange({ status })}
+      />
 
-        <div>
-          <label className={fieldLabel} htmlFor={sortId}>
-            Sort
-          </label>
-          <select
-            id={sortId}
-            className={select}
-            value={filters.sort}
-            onChange={(event) => onChange({ sort: event.target.value })}
-          >
-            {SORT_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {!compact && (
+        <SelectField
+          label="Room type"
+          placeholder="All types"
+          options={typeOptions}
+          value={filters.roomType}
+          onChange={(roomType) => onChange({ roomType })}
+        />
+      )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
-        <span className="flex flex-wrap items-center gap-5">
-          <span className="text-[0.85rem] text-ink-muted">
-            {resultCount === null
-              ? "Loading..."
-              : `${resultCount} reservation${resultCount === 1 ? "" : "s"} found`}
-          </span>
+      <DateField
+        label="Staying from"
+        value={filters.from}
+        onChange={(from) => onChange({ from })}
+      />
 
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[0.85rem] text-ink-muted">
-            <input
-              id={unpaidId}
-              type="checkbox"
-              className="size-4 accent-brand"
-              checked={filters.unpaid === "true"}
-              onChange={(event) => onChange({ unpaid: event.target.checked ? "true" : "" })}
-            />
-            Outstanding balance only
-          </label>
-        </span>
+      <DateField label="Staying until" value={filters.to} onChange={(to) => onChange({ to })} />
 
-        {hasFilters && (
-          <button type="button" className={buttonText} onClick={onReset}>
-            <X size={14} aria-hidden="true" /> Clear filters
-          </button>
-        )}
-      </div>
-    </section>
+      <SelectField
+        label="Sort"
+        options={SORT_OPTIONS}
+        value={filters.sort}
+        onChange={(sort) => onChange({ sort })}
+      />
+    </FilterPanel>
   );
 };
 

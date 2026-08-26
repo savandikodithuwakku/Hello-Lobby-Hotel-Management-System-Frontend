@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowLeft, Mail, Phone, User, UserPlus } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { Address, Role } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
+import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import {
   card,
   fieldGroup,
@@ -30,7 +30,6 @@ interface CreateForm {
 }
 
 const UserCreatePage = () => {
-  const navigate = useNavigate();
   const { user: actor } = useAuthUser();
 
   const [form, setForm] = useState<CreateForm>({
@@ -40,8 +39,8 @@ const UserCreatePage = () => {
     role: ROLES.STAFF,
     address: { ...EMPTY_ADDRESS },
   });
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  const { submitting, error, submit } = useCreateForm();
 
   const setField = (field: "name" | "email" | "phone") => (value: string) =>
     setForm((current) => ({ ...current, [field]: value }));
@@ -55,29 +54,23 @@ const UserCreatePage = () => {
     (option) => ROLE_LEVELS[option.value] < ROLE_LEVELS[actor.role]
   );
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
-    setSubmitting(true);
 
-    try {
-      const response = await usersApi.create({
-        name: form.name,
-        email: form.email,
-        phone: form.phone || undefined,
-        role: form.role,
-        address: form.address,
-      });
-
-      navigate(`/users/${response.data.user.id}`, {
-        replace: true,
-        state: { message: `Invitation sent to ${response.data.user.email}.` },
-      });
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-    } finally {
-      setSubmitting(false);
-    }
+    return submit(
+      () =>
+        usersApi.create({
+          name: form.name,
+          email: form.email,
+          phone: form.phone || undefined,
+          role: form.role,
+          address: form.address,
+        }),
+      ({ user }) => ({
+        to: `/users/${user.id}`,
+        message: `Invitation sent to ${user.email}.`,
+      })
+    );
   };
 
   return (

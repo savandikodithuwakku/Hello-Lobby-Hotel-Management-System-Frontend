@@ -1,4 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
+import { toQueryString } from "../../../shared/api/query.ts";
 import type { Address, Pagination, Role, User, UserStatus } from "../../../shared/api/types.ts";
 
 export interface UserListParams {
@@ -28,20 +29,6 @@ export interface UpdateUserPayload {
   phone: string | null;
   address: Address;
 }
-
-/** Drops empty filters so the URL only carries what the user actually chose. */
-const toQueryString = (params: UserListParams = {}): string => {
-  const search = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      search.set(key, String(value));
-    }
-  });
-
-  const query = search.toString();
-  return query ? `?${query}` : "";
-};
 
 export const usersApi = {
   list: (params: UserListParams) => httpClient.get<UserListResult>(`/users${toQueryString(params)}`),

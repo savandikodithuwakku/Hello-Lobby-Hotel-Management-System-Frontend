@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,10 +10,11 @@ import {
   Save,
   X,
 } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { RoomType } from "../../../shared/api/types.ts";
+import type { ApiResponse, RoomType } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
@@ -31,6 +32,7 @@ import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
 import type { RouteState } from "../../auth/types.ts";
 import { roomTypesApi, type RoomTypePayload } from "../services/rooms.api.ts";
+import { pluralize } from "../../../shared/ui/format.ts";
 import { formatOccupancy, formatPrice } from "../constants/rooms.ts";
 import RoomTypeForm from "../components/RoomTypeForm.tsx";
 
@@ -38,44 +40,26 @@ const RoomTypeDetailPage = () => {
   const { id = "" } = useParams<{ id: string }>();
   const location = useLocation();
 
-  const [roomType, setRoomType] = useState<RoomType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [notice, setNotice] = useState<string | null>(
-    (location.state as RouteState | null)?.message || null
-  );
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
 
-  const load = useCallback(() => {
-    roomTypesApi
-      .get(id)
-      .then((response) => {
-        setRoomType(response.data.roomType);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => setError(apiError))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: loaded, loading, error: loadError } = useApiData(
+    () => roomTypesApi.get(id).then((r) => r.data.roomType),
+    [id]
+  );
 
-  useEffect(load, [load]);
+  // Every write returns the updated type, so it replaces the loaded copy.
+  const [edited, setEdited] = useState<RoomType | null>(null);
+  const roomType = edited ?? loaded;
 
-  const run = async (action: () => Promise<{ message: string; data: { roomType: RoomType } }>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await action();
-      setRoomType(response.data.roomType);
-      setNotice(response.message);
-      return true;
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { busy, error: actionError, notice, run } = useAsyncAction(
+    (location.state as RouteState | null)?.message || null
+  );
+
+  const error = actionError ?? loadError;
+
+  const runTypeAction = (action: () => Promise<ApiResponse<{ roomType: RoomType }>>) =>
+    run(action, (data) => setEdited(data.roomType));
 
   if (loading) return <AuthLoadingScreen message="Loading room type..." />;
 
@@ -93,7 +77,7 @@ const RoomTypeDetailPage = () => {
   }
 
   const handleSave = async (payload: RoomTypePayload) => {
-    const saved = await run(() => roomTypesApi.update(id, payload));
+    const saved = await runTypeAction(() => roomTypesApi.update(id, payload));
     if (saved) setEditing(false);
   };
 
@@ -137,7 +121,7 @@ const RoomTypeDetailPage = () => {
               type="button"
               className={buttonPrimary}
               disabled={busy}
-              onClick={() => run(() => roomTypesApi.restore(id))}
+              onClick={() => runTypeAction(() => roomTypesApi.restore(id))}
             >
               <RotateCcw size={16} aria-hidden="true" /> Restore type
             </button>
@@ -178,7 +162,7 @@ const RoomTypeDetailPage = () => {
                 <DetailRow label="Sleeps">{formatOccupancy(roomType.maxOccupancy)}</DetailRow>
                 <DetailRow label="Rooms">
                   <Link to={`/rooms?roomType=${roomType.id}`} className={link}>
-                    {roomCount} room{roomCount === 1 ? "" : "s"}
+                    {pluralize(roomCount, "room")}
                   </Link>
                 </DetailRow>
                 <DetailRow label="Facilities">
@@ -231,7 +215,7 @@ const RoomTypeDetailPage = () => {
                     busy={busy}
                     onCancel={() => setConfirmingWithdrawal(false)}
                     onConfirm={async () => {
-                      const done = await run(() => roomTypesApi.deactivate(id));
+                      const done = await runTypeAction(() => roomTypesApi.deactivate(id));
                       if (done) setConfirmingWithdrawal(false);
                     }}
                   />

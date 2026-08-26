@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowLeft, BedDouble } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
+import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import { card, link } from "../../../shared/ui/styles.ts";
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import SubmitButton from "../../auth/components/SubmitButton.tsx";
@@ -10,26 +9,16 @@ import { roomTypesApi, type RoomTypePayload } from "../services/rooms.api.ts";
 import RoomTypeForm from "../components/RoomTypeForm.tsx";
 
 const RoomTypeCreatePage = () => {
-  const navigate = useNavigate();
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, submit } = useCreateForm();
 
-  const handleSubmit = async (payload: RoomTypePayload) => {
-    setError(null);
-    setSubmitting(true);
-
-    try {
-      const response = await roomTypesApi.create(payload);
-      navigate(`/room-types/${response.data.roomType.id}`, {
-        replace: true,
-        state: { message: `${response.data.roomType.name} added to the catalogue.` },
-      });
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const handleSubmit = (payload: RoomTypePayload) =>
+    submit(
+      () => roomTypesApi.create(payload),
+      ({ roomType }) => ({
+        to: `/room-types/${roomType.id}`,
+        message: `${roomType.name} added to the catalogue.`,
+      })
+    );
 
   return (
     <AppShell title="Add room type">

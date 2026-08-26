@@ -4,16 +4,12 @@ import { LogOut, Monitor, ShieldCheck, Trash2 } from "lucide-react";
 import { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { Session } from "../../../shared/api/types.ts";
 import { buttonIcon, buttonSubmit } from "../../../shared/ui/styles.ts";
+import { formatDateTime } from "../../../shared/ui/format.ts";
 import { useAuth } from "../hooks/useAuth.ts";
 import authApi from "../services/auth.api.ts";
 import AuthCard, { AuthCardLink } from "../components/AuthCard.tsx";
 import AlertMessage from "../components/AlertMessage.tsx";
 import { Spinner } from "../components/AuthLoadingScreen.tsx";
-
-const formatDate = (value: string | null): string =>
-  value
-    ? new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "-";
 
 /** Device management: shows every active session and lets the user revoke one. */
 const SessionsPage = () => {
@@ -96,7 +92,7 @@ const SessionsPage = () => {
                 </span>
                 <span className="text-[0.95rem] font-medium text-ink-muted">
                   {session.ipAddress || "Unknown IP"} &middot; last active{" "}
-                  {formatDate(session.lastUsedAt)}
+                  {formatDateTime(session.lastUsedAt)}
                 </span>
               </div>
               <button

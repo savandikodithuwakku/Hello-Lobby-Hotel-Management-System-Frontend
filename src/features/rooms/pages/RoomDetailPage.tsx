@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,10 +11,11 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { Room, RoomStatus, RoomType } from "../../../shared/api/types.ts";
+import type { ApiResponse, Room, RoomStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
@@ -67,55 +68,38 @@ const RoomDetailPage = () => {
   const { id = "" } = useParams<{ id: string }>();
   const location = useLocation();
 
-  const [room, setRoom] = useState<Room | null>(null);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [notice, setNotice] = useState<string | null>(
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditableForm | null>(null);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+
+  // The room itself, plus the active types the edit form offers.
+  const { data: loaded, loading, error: loadError } = useApiData(
+    () => roomsApi.get(id).then((r) => r.data.room),
+    [id]
+  );
+  const { data: roomTypes } = useApiData(
+    () =>
+      roomTypesApi
+        .list({ isActive: "true", limit: 100, sort: "name" })
+        .then((r) => r.data.roomTypes),
+    []
+  );
+
+  // Every write returns the updated room, so what is shown is the edited copy
+  // once there is one, and the freshly loaded one until then.
+  const [edited, setEdited] = useState<Room | null>(null);
+  const room = edited ?? loaded;
+
+  const { busy, error: actionError, notice, run } = useAsyncAction(
     (location.state as RouteState | null)?.message || null
   );
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<EditableForm | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const error = actionError ?? loadError;
+  const typeOptions = roomTypes ?? [];
 
-  const load = useCallback(() => {
-    roomsApi
-      .get(id)
-      .then((response) => {
-        setRoom(response.data.room);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => setError(apiError))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(load, [load]);
-
-  useEffect(() => {
-    roomTypesApi
-      .list({ isActive: "true", limit: 100, sort: "name" })
-      .then((response) => setRoomTypes(response.data.roomTypes))
-      .catch(() => setRoomTypes([]));
-  }, []);
-
-  /** Every mutation reports through the same notice/error pair. */
-  const run = async (action: () => Promise<{ message: string; data: { room: Room } }>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await action();
-      setRoom(response.data.room);
-      setNotice(response.message);
-      return true;
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
+  /** Every write on this screen replaces the room shown above it. */
+  const runRoomAction = (action: () => Promise<ApiResponse<{ room: Room }>>) =>
+    run(action, (data) => setEdited(data.room));
 
   if (loading) return <AuthLoadingScreen message="Loading room..." />;
 
@@ -136,7 +120,7 @@ const RoomDetailPage = () => {
     event.preventDefault();
     if (!form) return;
 
-    const saved = await run(() =>
+    const saved = await runRoomAction(() =>
       roomsApi.update(id, {
         roomNumber: form.roomNumber,
         roomType: form.roomType,
@@ -154,7 +138,7 @@ const RoomDetailPage = () => {
     setEditing(true);
   };
 
-  const selectedType = roomTypes.find((type) => type.id === form?.roomType) || null;
+  const selectedType = typeOptions.find((type) => type.id === form?.roomType) || null;
 
   return (
     <AppShell
@@ -189,7 +173,7 @@ const RoomDetailPage = () => {
               type="button"
               className={buttonPrimary}
               disabled={busy}
-              onClick={() => run(() => roomsApi.restore(id))}
+              onClick={() => runRoomAction(() => roomsApi.restore(id))}
             >
               <RotateCcw size={16} aria-hidden="true" /> Restore room
             </button>
@@ -235,10 +219,10 @@ const RoomDetailPage = () => {
                     required
                   >
                     {/* The current type is kept in the list even if withdrawn. */}
-                    {!roomTypes.some((type) => type.id === room.roomType.id) && (
+                    {!typeOptions.some((type) => type.id === room.roomType.id) && (
                       <option value={room.roomType.id}>{room.roomType.name} (withdrawn)</option>
                     )}
-                    {roomTypes.map((type) => (
+                    {typeOptions.map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.name} — {formatPrice(type.basePrice)}
                       </option>
@@ -373,7 +357,7 @@ const RoomDetailPage = () => {
                   allowed={room.isActive ? (room.allowedTransitions ?? []) : []}
                   busy={busy}
                   onSubmit={(status: RoomStatus, note: string) =>
-                    run(() => roomsApi.changeStatus(id, status, note))
+                    runRoomAction(() => roomsApi.changeStatus(id, status, note))
                   }
                 />
               </RequirePermission>
@@ -397,7 +381,7 @@ const RoomDetailPage = () => {
                     busy={busy}
                     onCancel={() => setConfirmingRemoval(false)}
                     onConfirm={async () => {
-                      const done = await run(() => roomsApi.deactivate(id));
+                      const done = await runRoomAction(() => roomsApi.deactivate(id));
                       if (done) setConfirmingRemoval(false);
                     }}
                   />

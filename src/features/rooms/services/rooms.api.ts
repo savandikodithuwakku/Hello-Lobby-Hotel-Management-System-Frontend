@@ -1,4 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
+import { toQueryString } from "../../../shared/api/query.ts";
 import type {
   CatalogRoomType,
   Pagination,
@@ -8,20 +9,6 @@ import type {
   RoomType,
   RoomTypeImage,
 } from "../../../shared/api/types.ts";
-
-/** Drops empty filters so the URL only carries what the operator chose. */
-const toQueryString = (params: object = {}): string => {
-  const search = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      search.set(key, String(value));
-    }
-  });
-
-  const query = search.toString();
-  return query ? `?${query}` : "";
-};
 
 /* -------------------------------------------------------------------------- */
 /* Room types                                                                 */

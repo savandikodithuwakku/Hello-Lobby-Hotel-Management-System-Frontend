@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,10 +11,11 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { Reservation, ReservationHistoryEntry } from "../../../shared/api/types.ts";
+import type { ApiResponse, Reservation } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
@@ -44,52 +45,38 @@ const ReservationDetailPage = () => {
   const location = useLocation();
   const { user: actor, hasPermission } = useAuthUser();
 
-  const [reservation, setReservation] = useState<Reservation | null>(null);
-  const [history, setHistory] = useState<ReservationHistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-  const [notice, setNotice] = useState<string | null>(
-    (location.state as RouteState | null)?.message || null
-  );
-  const [busy, setBusy] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
-  const loadHistory = useCallback(() => {
-    reservationsApi
-      .history(id)
-      .then((response) => setHistory(response.data.history))
-      .catch(() => setHistory([]));
-  }, [id]);
+  const { data: loaded, loading, error: loadError } = useApiData(
+    () => reservationsApi.get(id).then((r) => r.data.reservation),
+    [id]
+  );
 
-  useEffect(() => {
-    reservationsApi
-      .get(id)
-      .then((response) => {
-        setReservation(response.data.reservation);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => setError(apiError))
-      .finally(() => setLoading(false));
+  // The audit trail is reloaded after every action, because each one adds an
+  // entry to it.
+  const { data: historyData, reload: reloadHistory } = useApiData(
+    () => reservationsApi.history(id).then((r) => r.data.history),
+    [id]
+  );
 
-    loadHistory();
-  }, [id, loadHistory]);
+  // Every action returns the updated booking, so it replaces the loaded copy.
+  const [edited, setEdited] = useState<Reservation | null>(null);
+  const reservation = edited ?? loaded;
+  const history = historyData ?? [];
 
-  /** Every action reports through the same notice/error pair and refreshes the trail. */
-  const run = async (action: () => Promise<{ message: string; data: { reservation: Reservation } }>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await action();
-      setReservation(response.data.reservation);
-      setNotice(response.message);
-      loadHistory();
-      return true;
-    } catch (apiError) {
-      setError(apiError as ApiClientError);
-      return false;
-    } finally {
-      setBusy(false);
-    }
+  const { busy, error: actionError, notice, run } = useAsyncAction(
+    (location.state as RouteState | null)?.message || null
+  );
+
+  const error = actionError ?? loadError;
+
+  /** Every action updates the booking shown and refreshes its history. */
+  const runReservationAction = async (
+    action: () => Promise<ApiResponse<{ reservation: Reservation }>>
+  ) => {
+    const done = await run(action, (data) => setEdited(data.reservation));
+    reloadHistory();
+    return done;
   };
 
   if (loading) return <AuthLoadingScreen message="Loading reservation..." />;
@@ -222,11 +209,10 @@ const ReservationDetailPage = () => {
               reservation={reservation}
               canRecord={hasPermission(PERMISSIONS.PAYMENT_CREATE)}
               busy={busy}
+              // The payment response carries the updated booking, so recording
+              // money goes through the same path as any other action.
               onRecord={(amount, note) =>
-                run(async () => {
-                  const response = await reservationsApi.recordPayment(id, amount, note);
-                  return { message: response.message, data: { reservation: response.data.reservation } };
-                })
+                runReservationAction(() => reservationsApi.recordPayment(id, amount, note))
               }
             />
           </section>
@@ -247,7 +233,7 @@ const ReservationDetailPage = () => {
                           ? undefined
                           : "The advance must be paid before confirming"
                       }
-                      onClick={() => run(() => reservationsApi.confirm(id))}
+                      onClick={() => runReservationAction(() => reservationsApi.confirm(id))}
                     >
                       Confirm booking
                     </button>
@@ -260,7 +246,7 @@ const ReservationDetailPage = () => {
                       type="button"
                       className={buttonPrimary}
                       disabled={busy}
-                      onClick={() => run(() => reservationsApi.checkIn(id))}
+                      onClick={() => runReservationAction(() => reservationsApi.checkIn(id))}
                     >
                       <DoorOpen size={16} aria-hidden="true" /> Check in
                     </button>
@@ -273,7 +259,7 @@ const ReservationDetailPage = () => {
                       type="button"
                       className={buttonPrimary}
                       disabled={busy}
-                      onClick={() => run(() => reservationsApi.checkOut(id))}
+                      onClick={() => runReservationAction(() => reservationsApi.checkOut(id))}
                     >
                       <LogOut size={16} aria-hidden="true" /> Check out
                     </button>
@@ -289,7 +275,7 @@ const ReservationDetailPage = () => {
                       title={
                         payment.fullySettled ? undefined : "Settle the balance before completing"
                       }
-                      onClick={() => run(() => reservationsApi.complete(id))}
+                      onClick={() => runReservationAction(() => reservationsApi.complete(id))}
                     >
                       Complete booking
                     </button>
@@ -302,7 +288,7 @@ const ReservationDetailPage = () => {
                       type="button"
                       className={buttonSecondary}
                       disabled={busy}
-                      onClick={() => run(() => reservationsApi.markNoShow(id))}
+                      onClick={() => runReservationAction(() => reservationsApi.markNoShow(id))}
                     >
                       <CircleSlash size={16} aria-hidden="true" /> Mark as no-show
                     </button>
@@ -326,7 +312,7 @@ const ReservationDetailPage = () => {
                   busy={busy}
                   onCancel={() => setConfirmingCancel(false)}
                   onConfirm={async () => {
-                    const done = await run(() =>
+                    const done = await runReservationAction(() =>
                       reservationsApi.cancel(id, "Cancelled from the reservation screen")
                     );
                     if (done) setConfirmingCancel(false);

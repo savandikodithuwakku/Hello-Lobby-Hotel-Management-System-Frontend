@@ -1,5 +1,10 @@
 import type { RoomStatus } from "../../../shared/api/types.ts";
-export { formatPrice, formatDateTime, CURRENCY } from "../../../shared/ui/format.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+
+// Re-exported so a rooms screen imports its formatting from one place.
+export { formatPrice, formatDateTime, formatOccupancy, CURRENCY } from "../../../shared/ui/format.ts";
+export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export type { SelectOption };
 
 export const ROOM_STATUSES = {
   AVAILABLE: "available",
@@ -41,14 +46,7 @@ export const RESERVATION_CONTROLLED_STATUSES: RoomStatus[] = [
   ROOM_STATUSES.OCCUPIED,
 ];
 
-export interface SelectOption<TValue extends string = string> {
-  value: TValue;
-  label: string;
-}
-
-export const STATUS_OPTIONS: SelectOption<RoomStatus>[] = (
-  Object.entries(STATUS_LABELS) as [RoomStatus, string][]
-).map(([value, label]) => ({ value, label }));
+export const STATUS_OPTIONS: SelectOption<RoomStatus>[] = toSelectOptions(STATUS_LABELS);
 
 export const ROOM_SORT_OPTIONS: SelectOption[] = [
   { value: "roomNumber", label: "Room number" },
@@ -74,8 +72,6 @@ export const ACTIVE_OPTIONS: SelectOption[] = [
   { value: "false", label: "Deactivated only" },
 ];
 
-export const PAGE_SIZE = 20;
-
 export const DEFAULT_ROOM_SORT = "roomNumber";
 export const DEFAULT_ROOM_TYPE_SORT = "basePrice";
 
@@ -86,5 +82,3 @@ export const formatFloor = (floor: number): string => {
   return `Floor ${floor}`;
 };
 
-export const formatOccupancy = (guests: number): string =>
-  `${guests} guest${guests === 1 ? "" : "s"}`;

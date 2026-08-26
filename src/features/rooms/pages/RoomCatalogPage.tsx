@@ -1,13 +1,20 @@
-import { useEffect, useId, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BedDouble, CalendarSearch, Search, Users } from "lucide-react";
-import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import type { CatalogRoomType } from "../../../shared/api/types.ts";
+import { BedDouble, CalendarSearch, Users } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import { buttonPrimary, card, fieldLabel, inputWithIcon, select } from "../../../shared/ui/styles.ts";
+import NumberField from "../../../shared/components/form/NumberField.tsx";
+import SearchField from "../../../shared/components/form/SearchField.tsx";
+import SelectField from "../../../shared/components/form/SelectField.tsx";
+import useApiData from "../../../shared/hooks/useApiData.ts";
+import { buttonPrimary, card } from "../../../shared/ui/styles.ts";
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import { roomTypesApi } from "../services/rooms.api.ts";
 import { formatOccupancy, formatPrice, ROOM_TYPE_SORT_OPTIONS } from "../constants/rooms.ts";
+
+/** "Recently added" is inventory news, not something a guest cares about. */
+const CATALOGUE_SORT_OPTIONS = ROOM_TYPE_SORT_OPTIONS.filter(
+  (option) => !option.value.includes("createdAt")
+);
 
 /**
  * The guest-facing catalogue.
@@ -19,43 +26,20 @@ import { formatOccupancy, formatPrice, ROOM_TYPE_SORT_OPTIONS } from "../constan
  * rather than picking one now.
  */
 const RoomCatalogPage = () => {
-  const searchId = useId();
-  const guestsId = useId();
-  const sortId = useId();
-
-  const [roomTypes, setRoomTypes] = useState<CatalogRoomType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiClientError | null>(null);
-
   const [search, setSearch] = useState("");
   const [guests, setGuests] = useState("");
   const [sort, setSort] = useState("basePrice");
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+  // The API already limits a guest to types that are actually for sale.
+  const { data, loading, error } = useApiData(
+    () =>
+      roomTypesApi
+        .browse({ search, occupancy: guests, sort, limit: 50 })
+        .then((r) => r.data.roomTypes),
+    [search, guests, sort]
+  );
 
-    // The API already limits a guest to types that are actually for sale.
-    roomTypesApi
-      .browse({ search, occupancy: guests, sort, limit: 50 })
-      .then((response) => {
-        if (cancelled) return;
-        setRoomTypes(response.data.roomTypes);
-        setError(null);
-      })
-      .catch((apiError: ApiClientError) => {
-        if (cancelled) return;
-        setError(apiError);
-        setRoomTypes([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, guests, sort]);
+  const roomTypes = data ?? [];
 
   return (
     <AppShell title="Our rooms">
@@ -66,61 +50,19 @@ const RoomCatalogPage = () => {
           className="mb-8 grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(220px,2fr)_repeat(2,minmax(150px,1fr))]"
           aria-label="Filter rooms"
         >
-          <div>
-            <label className={fieldLabel} htmlFor={searchId}>
-              Search
-            </label>
-            <div className="relative flex items-center">
-              <Search
-                className="pointer-events-none absolute left-4 text-ink-dim"
-                size={18}
-                aria-hidden="true"
-              />
-              <input
-                id={searchId}
-                type="search"
-                className={inputWithIcon}
-                placeholder="Suite, sea view, family..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={fieldLabel} htmlFor={guestsId}>
-              Guests
-            </label>
-            <input
-              id={guestsId}
-              type="number"
-              min={1}
-              className={select}
-              placeholder="Any"
-              value={guests}
-              onChange={(event) => setGuests(event.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className={fieldLabel} htmlFor={sortId}>
-              Sort
-            </label>
-            <select
-              id={sortId}
-              className={select}
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-            >
-              {ROOM_TYPE_SORT_OPTIONS.filter((option) => !option.value.includes("createdAt")).map(
-                ({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
+          <SearchField
+            label="Search"
+            placeholder="Suite, sea view, family..."
+            value={search}
+            onChange={setSearch}
+          />
+          <NumberField label="Guests" min={1} value={guests} onChange={setGuests} />
+          <SelectField
+            label="Sort"
+            options={CATALOGUE_SORT_OPTIONS}
+            value={sort}
+            onChange={setSort}
+          />
         </section>
 
         {!loading && roomTypes.length === 0 ? (
