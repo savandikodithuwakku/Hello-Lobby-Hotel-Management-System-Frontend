@@ -1,4 +1,4 @@
-import type { RoomStatus } from "../../../shared/api/types.ts";
+import type { HousekeepingStatus, RoomOccupancy } from "../../../shared/api/types.ts";
 import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
 
 // Re-exported so a rooms screen imports its formatting from one place.
@@ -6,47 +6,63 @@ export { formatPrice, formatDateTime, formatOccupancy, CURRENCY } from "../../..
 export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
 export type { SelectOption };
 
-export const ROOM_STATUSES = {
-  AVAILABLE: "available",
+/**
+ * A room's two statuses.
+ *
+ * `occupancy` is driven by bookings and is never chosen by hand - it is shown
+ * so the desk can see who holds the room. `housekeeping` is the one staff act
+ * on, and it is the only one this feature offers as a choice.
+ */
+export const OCCUPANCY_STATUSES = {
+  VACANT: "vacant",
   RESERVED: "reserved",
   OCCUPIED: "occupied",
-  CLEANING: "cleaning",
-  MAINTENANCE: "maintenance",
-  OUT_OF_SERVICE: "out_of_service",
-} as const satisfies Record<string, RoomStatus>;
+} as const satisfies Record<string, RoomOccupancy>;
 
-export const STATUS_LABELS: Record<RoomStatus, string> = {
-  available: "Available",
+export const HOUSEKEEPING_STATUSES = {
+  CLEAN: "clean",
+  DIRTY: "dirty",
+  CLEANING: "cleaning",
+  INSPECTED: "inspected",
+  OUT_OF_ORDER: "out_of_order",
+} as const satisfies Record<string, HousekeepingStatus>;
+
+export const OCCUPANCY_LABELS: Record<RoomOccupancy, string> = {
+  vacant: "Vacant",
   reserved: "Reserved",
   occupied: "Occupied",
-  cleaning: "Cleaning",
-  maintenance: "Maintenance",
-  out_of_service: "Out of service",
+};
+
+export const HOUSEKEEPING_LABELS: Record<HousekeepingStatus, string> = {
+  clean: "Clean",
+  dirty: "Dirty",
+  cleaning: "Being cleaned",
+  inspected: "Inspected",
+  out_of_order: "Out of order",
 };
 
 /**
  * One complete class list per status - Tailwind only ships classes it can find
  * as literals, so these are never assembled at runtime.
  */
-export const statusPill: Record<RoomStatus, string> = {
-  available: "bg-success/10 text-emerald-700",
+export const occupancyPill: Record<RoomOccupancy, string> = {
+  vacant: "bg-success/10 text-emerald-700",
   reserved: "bg-brand/15 text-indigo-700",
   occupied: "bg-accent/10 text-fuchsia-700",
-  cleaning: "bg-warning/10 text-amber-700",
-  maintenance: "bg-warning/10 text-orange-700",
-  out_of_service: "bg-danger/10 text-red-700",
 };
 
-/**
- * Statuses the reservation and check-in flows own. They are shown but never
- * offered as a manual choice, matching the rule the API enforces.
- */
-export const RESERVATION_CONTROLLED_STATUSES: RoomStatus[] = [
-  ROOM_STATUSES.RESERVED,
-  ROOM_STATUSES.OCCUPIED,
-];
+export const housekeepingPill: Record<HousekeepingStatus, string> = {
+  clean: "bg-success/10 text-emerald-700",
+  inspected: "bg-success/15 text-emerald-800",
+  dirty: "bg-warning/10 text-amber-700",
+  cleaning: "bg-brand/10 text-indigo-700",
+  out_of_order: "bg-danger/10 text-red-700",
+};
 
-export const STATUS_OPTIONS: SelectOption<RoomStatus>[] = toSelectOptions(STATUS_LABELS);
+export const HOUSEKEEPING_OPTIONS: SelectOption<HousekeepingStatus>[] =
+  toSelectOptions(HOUSEKEEPING_LABELS);
+
+export const OCCUPANCY_OPTIONS: SelectOption<RoomOccupancy>[] = toSelectOptions(OCCUPANCY_LABELS);
 
 export const ROOM_SORT_OPTIONS: SelectOption[] = [
   { value: "roomNumber", label: "Room number" },

@@ -4,8 +4,8 @@ import type {
   CatalogRoomType,
   Pagination,
   Room,
+  HousekeepingStatus,
   RoomStatistics,
-  RoomStatus,
   RoomType,
   RoomTypeImage,
 } from "../../../shared/api/types.ts";
@@ -68,7 +68,9 @@ export const roomTypesApi = {
 export interface RoomListParams {
   search?: string;
   roomType?: string;
-  status?: string;
+  occupancy?: string;
+  housekeeping?: string;
+  discrepant?: string;
   floor?: string;
   isActive?: string;
   minPrice?: string;
@@ -107,8 +109,12 @@ export const roomsApi = {
     httpClient.patch<{ room: Room }>(`/rooms/${id}`, payload),
 
   /** Housekeeping and maintenance moves only; bookings drive the rest. */
-  changeStatus: (id: string, status: RoomStatus, note?: string) =>
-    httpClient.patch<{ room: Room }>(`/rooms/${id}/status`, { status, note }),
+  /**
+   * Housekeeping only. A room's occupancy is never set from a screen - it moves
+   * because something happened to a booking.
+   */
+  changeHousekeeping: (id: string, housekeeping: HousekeepingStatus, note?: string) =>
+    httpClient.patch<{ room: Room }>(`/rooms/${id}/housekeeping`, { housekeeping, note }),
 
   deactivate: (id: string, note?: string) =>
     httpClient.delete<{ room: Room }>(`/rooms/${id}`, note ? { note } : null),

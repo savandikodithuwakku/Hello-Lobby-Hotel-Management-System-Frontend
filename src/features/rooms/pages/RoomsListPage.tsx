@@ -11,7 +11,7 @@ import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
 import type { RouteState } from "../../auth/types.ts";
 import { roomTypesApi, roomsApi } from "../services/rooms.api.ts";
-import { DEFAULT_ROOM_SORT, STATUS_LABELS } from "../constants/rooms.ts";
+import { DEFAULT_ROOM_SORT, HOUSEKEEPING_LABELS } from "../constants/rooms.ts";
 import type { RoomFilterState } from "../types.ts";
 import RoomFilters from "../components/RoomFilters.tsx";
 import RoomTable from "../components/RoomTable.tsx";
@@ -23,7 +23,9 @@ import RoomTable from "../components/RoomTable.tsx";
 const readFilters = (params: URLSearchParams): RoomFilterState => ({
   search: params.get("search") || "",
   roomType: params.get("roomType") || "",
-  status: params.get("status") || "",
+  occupancy: params.get("occupancy") || "",
+  housekeeping: params.get("housekeeping") || "",
+  discrepant: params.get("discrepant") || "",
   floor: params.get("floor") || "",
   isActive: params.get("isActive") || "",
   sort: params.get("sort") || DEFAULT_ROOM_SORT,
@@ -62,7 +64,8 @@ const RoomsListPage = () => {
   const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
   const notice = (location.state as RouteState | null)?.message || null;
 
-  const { search, roomType, status, floor, isActive, sort, page } = filters;
+  const { search, roomType, occupancy, housekeeping, discrepant, floor, isActive, sort, page } =
+    filters;
 
   // The type list frames the filter bar and never changes with the filters, so
   // it is fetched once.
@@ -74,10 +77,21 @@ const RoomsListPage = () => {
   const { data, loading, error } = useApiData(
     () =>
       Promise.all([
-        roomsApi.list({ search, roomType, status, floor, isActive, sort, page, limit: PAGE_SIZE }),
+        roomsApi.list({
+          search,
+          roomType,
+          occupancy,
+          housekeeping,
+          discrepant,
+          floor,
+          isActive,
+          sort,
+          page,
+          limit: PAGE_SIZE,
+        }),
         roomsApi.statistics(),
       ]).then(([list, stats]) => ({ ...list.data, statistics: stats.data })),
-    [search, roomType, status, floor, isActive, sort, page]
+    [search, roomType, occupancy, housekeeping, discrepant, floor, isActive, sort, page]
   );
 
   return (
@@ -106,20 +120,46 @@ const RoomsListPage = () => {
           <StatusTile
             label="All rooms"
             count={data.statistics.active}
-            active={status === ""}
-            onClick={() => updateFilters({ status: "" })}
+            active={housekeeping === "" && discrepant === ""}
+            onClick={() => updateFilters({ housekeeping: "", discrepant: "" })}
           />
-          {(Object.entries(data.statistics.byStatus) as [keyof typeof STATUS_LABELS, number][]).map(
-            ([key, count]) => (
-              <StatusTile
-                key={key}
-                label={STATUS_LABELS[key]}
-                count={count}
-                active={status === key}
-                onClick={() => updateFilters({ status: status === key ? "" : key })}
-              />
-            )
-          )}
+
+          {/*
+            Rooms standing empty that cannot be sold. Given its own tile rather
+            than buried in the housekeeping counts, because every one of these
+            is a room the hotel could be selling tonight and is not.
+          */}
+          <StatusTile
+            label="Empty, not sellable"
+            count={data.statistics.discrepant}
+            active={discrepant === "true"}
+            onClick={() =>
+              updateFilters({
+                discrepant: discrepant === "true" ? "" : "true",
+                housekeeping: "",
+              })
+            }
+          />
+
+          {(
+            Object.entries(data.statistics.byHousekeeping) as [
+              keyof typeof HOUSEKEEPING_LABELS,
+              number,
+            ][]
+          ).map(([key, count]) => (
+            <StatusTile
+              key={key}
+              label={HOUSEKEEPING_LABELS[key]}
+              count={count}
+              active={housekeeping === key}
+              onClick={() =>
+                updateFilters({
+                  housekeeping: housekeeping === key ? "" : key,
+                  discrepant: "",
+                })
+              }
+            />
+          ))}
         </section>
       )}
 

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { DoorClosed } from "lucide-react";
 import type { Room } from "../../../shared/api/types.ts";
 import { link } from "../../../shared/ui/styles.ts";
-import RoomStatusPill from "./RoomStatusPill.tsx";
+import RoomStatusPills from "./RoomStatusPill.tsx";
 import { formatFloor, formatPrice } from "../constants/rooms.ts";
 
 const CELL = "border-b border-line px-4 py-3 text-left align-middle";
@@ -26,7 +26,7 @@ const RoomRow = ({ room }: { room: Room }) => (
     <td className={MUTED_CELL}>{room.roomType.name}</td>
     <td className={MUTED_CELL}>{formatFloor(room.floor)}</td>
     <td className={CELL}>
-      <RoomStatusPill status={room.status} />
+      <RoomStatusPills occupancy={room.occupancy} housekeeping={room.housekeeping} />
     </td>
     <td className={`${CELL} whitespace-nowrap tabular-nums`}>
       {formatPrice(room.effectivePrice)}

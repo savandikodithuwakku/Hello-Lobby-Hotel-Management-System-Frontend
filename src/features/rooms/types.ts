@@ -2,7 +2,12 @@
 export interface RoomFilterState {
   search: string;
   roomType: string;
-  status: string;
+  /** Who holds the room - driven by bookings. */
+  occupancy: string;
+  /** Whether it is fit to sell - driven by housekeeping. */
+  housekeeping: string;
+  /** "true" to show only rooms standing empty that cannot be sold. */
+  discrepant: string;
   floor: string;
   isActive: string;
   sort: string;

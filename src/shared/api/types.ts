@@ -69,13 +69,18 @@ export interface SessionPayload {
 /* Rooms                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export type RoomStatus =
-  | "available"
-  | "reserved"
-  | "occupied"
-  | "cleaning"
-  | "maintenance"
-  | "out_of_service";
+/**
+ * A room carries two statuses, not one, because they answer different questions
+ * and move for different reasons.
+ *
+ * `occupancy` says whether anybody holds the room and is driven by bookings;
+ * `housekeeping` says whether it is fit to sell and is driven by housekeeping
+ * staff. An occupied room is dirty every morning and clean by the afternoon, so
+ * neither can stand in for the other.
+ */
+export type RoomOccupancy = "vacant" | "reserved" | "occupied";
+
+export type HousekeepingStatus = "clean" | "dirty" | "cleaning" | "inspected" | "out_of_order";
 
 export interface RoomTypeImage {
   url: string;
@@ -122,19 +127,24 @@ export interface Room {
   id: string;
   roomNumber: string;
   floor: number;
-  status: RoomStatus;
-  statusNote: string;
-  statusChangedAt: string | null;
+  occupancy: RoomOccupancy;
+  housekeeping: HousekeepingStatus;
+  housekeepingNote: string;
+  housekeepingChangedAt: string | null;
+  occupancyChangedAt: string | null;
   /** The room's own price, or null when it follows its type's base price. */
   price: number | null;
   effectivePrice: number | null;
   facilities: string[];
   effectiveFacilities: string[];
   isActive: boolean;
+  /** Nobody in it, and fit for a guest. Both statuses have to agree. */
   isBookable: boolean;
+  /** Standing empty but not fit to sell - a room quietly losing money. */
+  isDiscrepant: boolean;
   roomType: RoomTypeSummary;
-  /** Statuses an operator may move this room to right now (detail only). */
-  allowedTransitions?: RoomStatus[];
+  /** Housekeeping states this room may move to right now (detail only). */
+  allowedHousekeepingTransitions?: HousekeepingStatus[];
   createdAt: string;
   updatedAt: string;
 }
@@ -143,9 +153,14 @@ export interface RoomStatistics {
   total: number;
   active: number;
   inactive: number;
-  available: number;
+  /** Vacant *and* fit to sell. Counting vacant alone would promise rooms that
+   * have not been cleaned. */
+  sellable: number;
+  /** Vacant but not sellable. The number worth looking at every morning. */
+  discrepant: number;
   occupancyRate: number;
-  byStatus: Record<RoomStatus, number>;
+  byOccupancy: Record<RoomOccupancy, number>;
+  byHousekeeping: Record<HousekeepingStatus, number>;
   byRoomType: { roomTypeId: string; name: string; count: number }[];
 }
 
@@ -172,7 +187,10 @@ export interface ReservationService {
 export interface ReservationPricing {
   roomRate: number;
   roomSubtotal: number;
+  /** Extras agreed when the booking was made. */
   servicesSubtotal: number;
+  /** What the guest used once they were in the room - the folio total. */
+  extraCharges: number;
   totalAmount: number;
 }
 
@@ -193,7 +211,13 @@ export interface Reservation {
   reference: string;
   status: ReservationStatus;
   customer: { id: string; name?: string; email?: string; phone?: string | null };
-  room: { id: string; roomNumber?: string; floor?: number; status?: RoomStatus };
+  room: {
+    id: string;
+    roomNumber?: string;
+    floor?: number;
+    occupancy?: RoomOccupancy;
+    housekeeping?: HousekeepingStatus;
+  };
   roomType: { id: string; name?: string; maxOccupancy?: number };
   checkIn: string;
   checkOut: string;
@@ -274,11 +298,46 @@ export type TransactionDirection = "payment" | "refund";
 
 export type PaymentMethod = "cash" | "card" | "bank_transfer" | "online";
 
+/** What kind of thing was charged to a room during the stay. */
+export type ChargeCategory =
+  | "food_and_drink"
+  | "minibar"
+  | "laundry"
+  | "spa"
+  | "transport"
+  | "telephone"
+  | "damage"
+  | "room_charge"
+  | "other"
+  | "adjustment";
+
+/**
+ * One thing the guest used while they were here.
+ *
+ * Distinct from a booking's `additionalServices`, which is what was agreed
+ * before they arrived. Lines are never edited or removed - a mistake is
+ * cancelled out by an opposite line pointing back at it.
+ */
+export interface FolioCharge {
+  id: string;
+  description: string;
+  category: ChargeCategory;
+  unitPrice: number;
+  quantity: number;
+  amount: number;
+  reverses: string | null;
+  postedBy: string | null;
+  postedAt: string;
+  note: string;
+}
+
 export interface InvoiceAmounts {
   total: number;
   advance: number;
   paid: number;
   refunded: number;
+  /** Everything charged to the room during the stay. */
+  charges: number;
   /** What has been received and kept, after refunds. */
   netPaid: number;
   balanceDue: number;
@@ -326,6 +385,7 @@ export interface Invoice {
   };
   customer: { id: string | null; name?: string; email?: string; phone?: string | null };
   amounts: InvoiceAmounts;
+  charges: FolioCharge[];
   advanceDueAt: string;
   dueAt: string;
   advanceSettled: boolean;

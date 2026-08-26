@@ -91,11 +91,10 @@ export const reservationsApi = {
   cancel: (id: string, reason?: string) =>
     httpClient.post<{ reservation: Reservation }>(`/reservations/${id}/cancel`, { reason }),
 
-  checkIn: (id: string, note?: string) =>
-    httpClient.post<{ reservation: Reservation }>(`/reservations/${id}/check-in`, { note }),
-
-  checkOut: (id: string, note?: string) =>
-    httpClient.post<{ reservation: Reservation }>(`/reservations/${id}/check-out`, { note }),
+  // Arrivals and departures are not here. They are front-desk operations with
+  // conditions of their own - the advance paid, the room fit for a guest,
+  // nothing left outstanding - so they live in the front-desk feature. See
+  // `features/frontdesk/services/frontdesk.api.ts`.
 
   complete: (id: string, note?: string) =>
     httpClient.post<{ reservation: Reservation }>(`/reservations/${id}/complete`, { note }),

@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { ApiResponse, Room, RoomStatus } from "../../../shared/api/types.ts";
+import type { ApiResponse, HousekeepingStatus, Room } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
@@ -44,7 +44,7 @@ import {
   formatOccupancy,
   formatPrice,
 } from "../constants/rooms.ts";
-import RoomStatusPill from "../components/RoomStatusPill.tsx";
+import RoomStatusPills from "../components/RoomStatusPill.tsx";
 import StatusChangePanel from "../components/StatusChangePanel.tsx";
 import FacilitiesEditor from "../components/FacilitiesEditor.tsx";
 
@@ -286,7 +286,7 @@ const RoomDetailPage = () => {
             ) : (
               <DetailList>
                 <DetailRow label="Status">
-                  <RoomStatusPill status={room.status} />
+                  <RoomStatusPills occupancy={room.occupancy} housekeeping={room.housekeeping} />
                 </DetailRow>
                 <DetailRow label="Room type">
                   <Link to={`/room-types/${room.roomType.id}`} className={link}>
@@ -339,8 +339,15 @@ const RoomDetailPage = () => {
             </h2>
 
             <DetailList>
-              <DetailRow label="Changed">{formatDateTime(room.statusChangedAt)}</DetailRow>
-              {room.statusNote && <DetailRow label="Note">{room.statusNote}</DetailRow>}
+              <DetailRow label="Changed">{formatDateTime(room.housekeepingChangedAt)}</DetailRow>
+              {room.housekeepingNote && (
+                <DetailRow label="Note">{room.housekeepingNote}</DetailRow>
+              )}
+              {room.isDiscrepant && (
+                <DetailRow label="Attention">
+                  Standing empty but not fit to sell - this room cannot be booked tonight.
+                </DetailRow>
+              )}
             </DetailList>
 
             <div className="mt-6">
@@ -353,11 +360,12 @@ const RoomDetailPage = () => {
                 }
               >
                 <StatusChangePanel
-                  current={room.status}
-                  allowed={room.isActive ? (room.allowedTransitions ?? []) : []}
+                  current={room.housekeeping}
+                  occupancy={room.occupancy}
+                  allowed={room.isActive ? (room.allowedHousekeepingTransitions ?? []) : []}
                   busy={busy}
-                  onSubmit={(status: RoomStatus, note: string) =>
-                    runRoomAction(() => roomsApi.changeStatus(id, status, note))
+                  onSubmit={(housekeeping: HousekeepingStatus, note: string) =>
+                    runRoomAction(() => roomsApi.changeHousekeeping(id, housekeeping, note))
                   }
                 />
               </RequirePermission>

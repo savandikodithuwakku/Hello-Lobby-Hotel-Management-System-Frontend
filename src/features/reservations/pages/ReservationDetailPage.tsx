@@ -36,6 +36,7 @@ import { useAuthUser } from "../../auth/hooks/useAuth.ts";
 import type { RouteState } from "../../auth/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
 import paymentsApi from "../../payments/services/payments.api.ts";
+import frontdeskApi from "../../frontdesk/services/frontdesk.api.ts";
 import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../constants/reservations.ts";
 import ReservationStatusPill from "../components/ReservationStatusPill.tsx";
 import PaymentPanel from "../components/PaymentPanel.tsx";
@@ -256,7 +257,7 @@ const ReservationDetailPage = () => {
                       type="button"
                       className={buttonPrimary}
                       disabled={busy}
-                      onClick={() => runReservationAction(() => reservationsApi.checkIn(id))}
+                      onClick={() => runReservationAction(() => frontdeskApi.checkIn(id))}
                     >
                       <DoorOpen size={16} aria-hidden="true" /> Check in
                     </button>
@@ -269,7 +270,7 @@ const ReservationDetailPage = () => {
                       type="button"
                       className={buttonPrimary}
                       disabled={busy}
-                      onClick={() => runReservationAction(() => reservationsApi.checkOut(id))}
+                      onClick={() => runReservationAction(() => frontdeskApi.checkOut(id))}
                     >
                       <LogOut size={16} aria-hidden="true" /> Check out
                     </button>

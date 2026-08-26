@@ -5,7 +5,12 @@ import SearchField from "../../../shared/components/form/SearchField.tsx";
 import SelectField from "../../../shared/components/form/SelectField.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
 import type { SelectOption } from "../../../shared/types/options.ts";
-import { ACTIVE_OPTIONS, ROOM_SORT_OPTIONS, STATUS_OPTIONS } from "../constants/rooms.ts";
+import {
+  ACTIVE_OPTIONS,
+  HOUSEKEEPING_OPTIONS,
+  OCCUPANCY_OPTIONS,
+  ROOM_SORT_OPTIONS,
+} from "../constants/rooms.ts";
 import type { RoomFilterPatch, RoomFilterState } from "../types.ts";
 
 interface RoomFiltersProps {
@@ -30,7 +35,13 @@ const RoomFilters = ({ filters, roomTypes, onChange, onReset, resultCount }: Roo
       gridClassName="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(200px,1.6fr)_repeat(3,minmax(140px,1fr))] min-[1280px]:grid-cols-[minmax(200px,1.6fr)_repeat(5,minmax(130px,1fr))]"
       resultSummary={formatResultCount(resultCount, "room")}
       hasFilters={Boolean(
-        filters.search || filters.roomType || filters.status || filters.floor || filters.isActive
+        filters.search ||
+        filters.roomType ||
+        filters.occupancy ||
+        filters.housekeeping ||
+        filters.discrepant ||
+        filters.floor ||
+        filters.isActive
       )}
       onReset={onReset}
     >
@@ -50,11 +61,19 @@ const RoomFilters = ({ filters, roomTypes, onChange, onReset, resultCount }: Roo
       />
 
       <SelectField
-        label="Status"
-        placeholder="All statuses"
-        options={STATUS_OPTIONS}
-        value={filters.status}
-        onChange={(status) => onChange({ status })}
+        label="Occupancy"
+        placeholder="Anyone"
+        options={OCCUPANCY_OPTIONS}
+        value={filters.occupancy}
+        onChange={(occupancy) => onChange({ occupancy })}
+      />
+
+      <SelectField
+        label="Housekeeping"
+        placeholder="Any state"
+        options={HOUSEKEEPING_OPTIONS}
+        value={filters.housekeeping}
+        onChange={(housekeeping) => onChange({ housekeeping })}
       />
 
       <NumberField
