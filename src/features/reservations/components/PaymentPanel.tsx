@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Wallet } from "lucide-react";
-import type { Reservation } from "../../../shared/api/types.ts";
+import type { PaymentMethod, PaymentMethodOption, Reservation } from "../../../shared/api/types.ts";
+import type { RecordPaymentInput } from "../../payments/services/payments.api.ts";
 import {
   actionRow,
   buttonPrimary,
@@ -9,6 +10,7 @@ import {
   fieldHint,
   fieldLabel,
   input,
+  select,
 } from "../../../shared/ui/styles.ts";
 import { formatDateOnly, formatPrice, pluralize } from "../../../shared/ui/format.ts";
 import { daysUntil } from "../constants/reservations.ts";
@@ -18,7 +20,13 @@ interface PaymentPanelProps {
   /** False for a guest, who sees the amounts but cannot record a payment. */
   canRecord: boolean;
   busy: boolean;
-  onRecord: (amount: number, note: string) => void;
+  /**
+   * The methods the server says can be used. Only the ones taken in person are
+   * offered here - an online payment sends the guest out to a provider and is
+   * started from the guest's own screen, not from the front desk.
+   */
+  methods: PaymentMethodOption[];
+  onRecord: (input: RecordPaymentInput) => void;
 }
 
 const Line = ({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) => (
@@ -61,10 +69,15 @@ const Deadline = ({ label, date, settled }: { label: string; date: string; settl
  * and by when. Recording a payment that settles the advance confirms the
  * reservation server-side, so the panel says so before it is pressed.
  */
-const PaymentPanel = ({ reservation, canRecord, busy, onRecord }: PaymentPanelProps) => {
+const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: PaymentPanelProps) => {
   const { payment, pricing } = reservation;
   const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [note, setNote] = useState("");
+
+  // Cash, the hotel's own card terminal, a bank transfer that has landed: money
+  // a person already took, which the front desk is only writing down.
+  const overTheCounter = methods.filter((option) => option.available && !option.requiresRedirect);
 
   const value = Number(amount);
   const valid = Number.isFinite(value) && value > 0 && value <= payment.balanceDue;
@@ -123,6 +136,24 @@ const PaymentPanel = ({ reservation, canRecord, busy, onRecord }: PaymentPanelPr
           </div>
 
           <div className={fieldGroup}>
+            <label className={fieldLabel} htmlFor="payment-method">
+              How it was paid
+            </label>
+            <select
+              id="payment-method"
+              className={select}
+              value={method}
+              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+            >
+              {overTheCounter.map((option) => (
+                <option key={option.method} value={option.method}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={fieldGroup}>
             <label className={fieldLabel} htmlFor="payment-note">
               Reference (optional)
             </label>
@@ -131,9 +162,12 @@ const PaymentPanel = ({ reservation, canRecord, busy, onRecord }: PaymentPanelPr
               type="text"
               className={input}
               value={note}
-              placeholder="Cash at desk, card ending 4242..."
+              placeholder="Bank slip or terminal receipt number"
               onChange={(event) => setNote(event.target.value)}
             />
+            <p className={fieldHint}>
+              Never enter card numbers here - only the reference the terminal or bank gave you.
+            </p>
           </div>
 
           <div className={actionRow}>
@@ -158,7 +192,7 @@ const PaymentPanel = ({ reservation, canRecord, busy, onRecord }: PaymentPanelPr
               className={buttonPrimary}
               disabled={busy || !valid}
               onClick={() => {
-                onRecord(value, note);
+                onRecord({ amount: value, method, externalReference: note });
                 setAmount("");
                 setNote("");
               }}

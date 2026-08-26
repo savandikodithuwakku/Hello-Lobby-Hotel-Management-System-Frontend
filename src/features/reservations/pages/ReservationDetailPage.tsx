@@ -35,6 +35,7 @@ import { PERMISSIONS } from "../../auth/constants/rbac.ts";
 import { useAuthUser } from "../../auth/hooks/useAuth.ts";
 import type { RouteState } from "../../auth/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
+import paymentsApi from "../../payments/services/payments.api.ts";
 import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../constants/reservations.ts";
 import ReservationStatusPill from "../components/ReservationStatusPill.tsx";
 import PaymentPanel from "../components/PaymentPanel.tsx";
@@ -57,6 +58,13 @@ const ReservationDetailPage = () => {
   const { data: historyData, reload: reloadHistory } = useApiData(
     () => reservationsApi.history(id).then((r) => r.data.history),
     [id]
+  );
+
+  // Which ways of paying the server can actually handle. Asked for rather than
+  // hard-coded, so the form never offers a method that would be refused.
+  const { data: methodData } = useApiData(
+    () => paymentsApi.methods().then((r) => r.data.methods),
+    []
   );
 
   // Every action returns the updated booking, so it replaces the loaded copy.
@@ -209,10 +217,12 @@ const ReservationDetailPage = () => {
               reservation={reservation}
               canRecord={hasPermission(PERMISSIONS.PAYMENT_CREATE)}
               busy={busy}
+              methods={methodData ?? []}
               // The payment response carries the updated booking, so recording
-              // money goes through the same path as any other action.
-              onRecord={(amount, note) =>
-                runReservationAction(() => reservationsApi.recordPayment(id, amount, note))
+              // money goes through the same path as any other action. The bill
+              // itself is issued by the server on first use.
+              onRecord={(input) =>
+                runReservationAction(() => paymentsApi.recordPayment(id, input))
               }
             />
           </section>

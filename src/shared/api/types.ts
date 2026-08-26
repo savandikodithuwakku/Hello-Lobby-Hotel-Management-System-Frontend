@@ -253,3 +253,122 @@ export interface ReservationStatistics {
   inHouse: number;
   outstanding: { count: number; amount: number };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Payments & billing                                                         */
+/* -------------------------------------------------------------------------- */
+
+/** A bill's status is worked out by the server from its amounts, never stored. */
+export type InvoiceStatus =
+  | "pending"
+  | "partially_paid"
+  | "paid"
+  | "overdue"
+  | "refunded"
+  | "cancelled";
+
+/** One movement of money, as opposed to the bill it belongs to. */
+export type TransactionStatus = "pending" | "success" | "failed" | "cancelled";
+
+export type TransactionDirection = "payment" | "refund";
+
+export type PaymentMethod = "cash" | "card" | "bank_transfer" | "online";
+
+export interface InvoiceAmounts {
+  total: number;
+  advance: number;
+  paid: number;
+  refunded: number;
+  /** What has been received and kept, after refunds. */
+  netPaid: number;
+  balanceDue: number;
+}
+
+export interface Transaction {
+  id: string;
+  reference: string;
+  direction: TransactionDirection;
+  status: TransactionStatus;
+  amount: number;
+  currency: string;
+  method: PaymentMethod;
+  methodLabel: string;
+  invoice: string | null;
+  reservation: string | null;
+  customer: { id: string | null; name?: string; email?: string };
+  provider: string;
+  providerReference: string | null;
+  providerStatus: string | null;
+  externalReference: string;
+  reverses: string | null;
+  refundedAmount: number;
+  refundableAmount: number;
+  recordedBy: { id: string | null; name?: string };
+  settledAt: string | null;
+  expiresAt: string | null;
+  failureReason: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Invoice {
+  id: string;
+  reference: string;
+  status: InvoiceStatus;
+  currency: string;
+  reservation: {
+    id: string | null;
+    reference?: string;
+    status?: ReservationStatus;
+    checkIn?: string;
+    checkOut?: string;
+  };
+  customer: { id: string | null; name?: string; email?: string; phone?: string | null };
+  amounts: InvoiceAmounts;
+  advanceDueAt: string;
+  dueAt: string;
+  advanceSettled: boolean;
+  fullySettled: boolean;
+  isOverdue: boolean;
+  issuedAt: string;
+  settledAt: string | null;
+  voidedAt: string | null;
+  voidReason: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Detail responses only: every movement of money against this bill. */
+  transactions?: Transaction[];
+}
+
+/** What the payment form may offer, read from the server's provider register. */
+export interface PaymentMethodOption {
+  method: PaymentMethod;
+  label: string;
+  available: boolean;
+  provider: string | null;
+  /** True when paying sends the guest out to a provider rather than being
+   * written down at the desk. */
+  requiresRedirect: boolean;
+  /** True while the built-in stand-in gateway is handling online payments, so
+   * the UI can say plainly that no real money moved. */
+  simulated: boolean;
+}
+
+export interface RefundQuote {
+  amount: number;
+  retained: number;
+  policy: string;
+  reason: string;
+  currency: string;
+  /** The most that could be given back if the policy were overridden. */
+  maximum: number;
+}
+
+export interface PaymentStatistics {
+  invoices: { byStatus: Record<InvoiceStatus, number>; total: number };
+  outstanding: number;
+  takenToday: { amount: number; count: number };
+  refunded: { amount: number; count: number };
+  byMethod: Record<PaymentMethod, { amount: number; count: number }>;
+}

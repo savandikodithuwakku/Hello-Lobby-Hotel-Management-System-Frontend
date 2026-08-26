@@ -103,16 +103,8 @@ export const reservationsApi = {
   markNoShow: (id: string, note?: string) =>
     httpClient.post<{ reservation: Reservation }>(`/reservations/${id}/no-show`, { note }),
 
-  /**
-   * Records money against a booking. Paying the advance in full confirms the
-   * reservation server-side, which is why the response carries it back.
-   */
-  recordPayment: (id: string, amount: number, note?: string) =>
-    httpClient.patch<{
-      reservation: Reservation;
-      recorded: number;
-      autoConfirmed: boolean;
-    }>(`/reservations/${id}/payment`, { amount, note }),
+  // Money is not recorded here. Bills, receipts and refunds belong to the
+  // payments feature - see `features/payments/services/payments.api.ts`.
 };
 
 export default reservationsApi;
