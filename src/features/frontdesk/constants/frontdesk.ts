@@ -15,16 +15,6 @@ export type { SelectOption };
 /* Tickets                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export const TICKET_STATUSES = {
-  OPEN: "open",
-  ACKNOWLEDGED: "acknowledged",
-  IN_PROGRESS: "in_progress",
-  ON_HOLD: "on_hold",
-  RESOLVED: "resolved",
-  CLOSED: "closed",
-  CANCELLED: "cancelled",
-} as const satisfies Record<string, TicketStatus>;
-
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   open: "Open",
   acknowledged: "Acknowledged",
@@ -73,14 +63,6 @@ export const ticketPriorityPill: Record<TicketPriority, string> = {
   high: "bg-warning/15 text-orange-700",
   medium: "bg-brand/10 text-indigo-700",
   low: "bg-ink-dim/10 text-ink-muted",
-};
-
-/** Ordering for the board: an urgent ticket never sits below a low one. */
-export const PRIORITY_RANK: Record<TicketPriority, number> = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
 };
 
 /**
@@ -166,11 +148,3 @@ export const formatSince = (value: string | null): string => {
   return `${Math.round(ago / 1440)} d`;
 };
 
-/** How long until a deadline, or how far past it. */
-export const formatUntil = (value: string): { text: string; late: boolean } => {
-  const minutes = Math.round((new Date(value).getTime() - Date.now()) / 60000);
-
-  return minutes < 0
-    ? { text: `${formatSince(value)} overdue`, late: true }
-    : { text: `${formatSince(new Date(Date.now() - minutes * 60000).toISOString())} left`, late: false };
-};

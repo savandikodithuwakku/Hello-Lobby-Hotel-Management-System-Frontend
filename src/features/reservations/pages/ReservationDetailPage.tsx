@@ -11,7 +11,11 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import type { ApiResponse, Reservation } from "../../../shared/api/types.ts";
+import type {
+  ApiResponse,
+  Reservation,
+  ReservationStatus,
+} from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
@@ -31,7 +35,7 @@ import { formatDateOnly, formatNights, formatPrice } from "../../../shared/ui/fo
 import AlertMessage from "../../auth/components/AlertMessage.tsx";
 import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
+import { PERMISSIONS, type Permission } from "../../auth/constants/rbac.ts";
 import { useAuthUser } from "../../auth/hooks/useAuth.ts";
 import type { RouteState } from "../../auth/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
@@ -41,6 +45,23 @@ import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../constants/res
 import ReservationStatusPill from "../components/ReservationStatusPill.tsx";
 import PaymentPanel from "../components/PaymentPanel.tsx";
 import HistoryTimeline from "../components/HistoryTimeline.tsx";
+
+/**
+ * The front-desk actions this card offers, each with the permission it needs.
+ *
+ * Declared as data so the card can ask "is there anything here for the person
+ * looking?" before it renders anything. It used to appear whenever the booking
+ * had any move available at all, regardless of who was viewing - so a guest,
+ * who holds none of these permissions, was shown a "Front desk" heading with
+ * an empty box underneath it.
+ */
+const FRONT_DESK_ACTIONS: { transition: ReservationStatus; permission: Permission }[] = [
+  { transition: RESERVATION_STATUSES.CONFIRMED, permission: PERMISSIONS.RESERVATION_UPDATE },
+  { transition: RESERVATION_STATUSES.CHECKED_IN, permission: PERMISSIONS.FRONTDESK_CHECKIN },
+  { transition: RESERVATION_STATUSES.CHECKED_OUT, permission: PERMISSIONS.FRONTDESK_CHECKOUT },
+  { transition: RESERVATION_STATUSES.COMPLETED, permission: PERMISSIONS.RESERVATION_UPDATE },
+  { transition: RESERVATION_STATUSES.NO_SHOW, permission: PERMISSIONS.RESERVATION_UPDATE },
+];
 
 const ReservationDetailPage = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -108,6 +129,14 @@ const ReservationDetailPage = () => {
   const canCancel =
     (isOwner || hasPermission(PERMISSIONS.RESERVATION_CANCEL)) &&
     allowedTransitions.includes(RESERVATION_STATUSES.CANCELLED);
+
+  // The booking having a move available is not enough on its own: the person
+  // looking has to be able to make at least one of them, or the card is a
+  // heading over nothing.
+  const hasFrontDeskActions = FRONT_DESK_ACTIONS.some(
+    ({ transition, permission }) =>
+      allowedTransitions.includes(transition) && hasPermission(permission)
+  );
 
   return (
     <AppShell title={`Booking ${reservation.reference}`}>
@@ -228,7 +257,7 @@ const ReservationDetailPage = () => {
             />
           </section>
 
-          {allowedTransitions.length > 0 && (
+          {hasFrontDeskActions && (
             <section className={card}>
               <h2 className={cardTitle}>Front desk</h2>
 

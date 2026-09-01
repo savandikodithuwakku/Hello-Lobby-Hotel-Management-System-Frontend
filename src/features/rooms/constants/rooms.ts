@@ -13,19 +13,6 @@ export type { SelectOption };
  * so the desk can see who holds the room. `housekeeping` is the one staff act
  * on, and it is the only one this feature offers as a choice.
  */
-export const OCCUPANCY_STATUSES = {
-  VACANT: "vacant",
-  RESERVED: "reserved",
-  OCCUPIED: "occupied",
-} as const satisfies Record<string, RoomOccupancy>;
-
-export const HOUSEKEEPING_STATUSES = {
-  CLEAN: "clean",
-  DIRTY: "dirty",
-  CLEANING: "cleaning",
-  INSPECTED: "inspected",
-  OUT_OF_ORDER: "out_of_order",
-} as const satisfies Record<string, HousekeepingStatus>;
 
 export const OCCUPANCY_LABELS: Record<RoomOccupancy, string> = {
   vacant: "Vacant",

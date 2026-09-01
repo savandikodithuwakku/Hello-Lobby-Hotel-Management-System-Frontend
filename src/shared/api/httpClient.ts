@@ -16,8 +16,6 @@ export const setAccessToken = (token: string | null): void => {
   accessToken = token;
 };
 
-export const getAccessToken = (): string | null => accessToken;
-
 /** Lets the auth context clear its state when a refresh finally fails. */
 export const setSessionExpiredHandler = (handler: (() => void) | null): void => {
   onSessionExpired = handler;

@@ -25,6 +25,13 @@ export interface TicketListParams {
   limit?: number;
 }
 
+/** Somebody a ticket can be handed to. */
+export interface AssignableStaff {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export interface CreateTicketPayload {
   subject: string;
   description: string;
@@ -54,6 +61,13 @@ export const ticketsApi = {
       priorities: TicketPriority[];
       statuses: TicketStatus[];
     }>("/tickets/options"),
+
+  /**
+   * Who a ticket can be handed to: everybody holding the permission to work
+   * one. Its own endpoint rather than the user directory, which the people who
+   * need this list cannot read.
+   */
+  assignees: () => httpClient.get<{ staff: AssignableStaff[] }>("/tickets/assignees"),
 
   get: (id: string) => httpClient.get<{ ticket: Ticket }>(`/tickets/${id}`),
 

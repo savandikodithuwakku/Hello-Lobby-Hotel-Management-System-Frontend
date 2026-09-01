@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BedDouble, DoorClosed, LifeBuoy, MessageSquare, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  BedDouble,
+  DoorClosed,
+  LifeBuoy,
+  MessageSquare,
+  Send,
+  UserCheck,
+} from "lucide-react";
 import type { ApiResponse, Ticket, TicketStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
@@ -56,6 +64,15 @@ const TicketDetailPage = () => {
   const [note, setNote] = useState("");
   const [nextStatus, setNextStatus] = useState<TicketStatus | "">("");
   const [resolution, setResolution] = useState("");
+
+  // Only staff can hand a ticket to anybody, so only staff ask for the list.
+  const { data: assignable } = useApiData(
+    () =>
+      canManage
+        ? ticketsApi.assignees().then((response) => response.data.staff)
+        : Promise.resolve([]),
+    [canManage]
+  );
 
   const { busy, error: actionError, notice, run } = useAsyncAction();
   const error = actionError ?? loadError;
@@ -217,6 +234,42 @@ const TicketDetailPage = () => {
         </div>
 
         <div className={column}>
+          {canManage && (
+            <section className={card}>
+              <h2 className={cardTitle}>
+                <UserCheck size={20} aria-hidden="true" /> Who is on it
+              </h2>
+
+              <div className={fieldGroup}>
+                <label className={fieldLabel} htmlFor="ticket-assignee">
+                  Assigned to
+                </label>
+                <select
+                  id="ticket-assignee"
+                  className={select}
+                  value={ticket.assignedTo?.id ?? ""}
+                  disabled={busy}
+                  onChange={(event) =>
+                    // The empty choice takes the ticket back off whoever had it,
+                    // which is why this sends null rather than skipping the call.
+                    runTicketAction(() => ticketsApi.assign(id, event.target.value || null))
+                  }
+                >
+                  <option value="">Nobody yet</option>
+                  {(assignable ?? []).map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+                <p className={fieldHint}>
+                  Only people who can work tickets are listed. The API refuses anybody else, so a
+                  guest can never end up holding one.
+                </p>
+              </div>
+            </section>
+          )}
+
           {canManage && allowed.length > 0 && (
             <section className={card}>
               <h2 className={cardTitle}>Move it along</h2>
