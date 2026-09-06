@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, BedDouble, LifeBuoy, Plus } from "lucide-react";
 import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
+import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTable.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
@@ -79,8 +80,7 @@ const Tile = ({
   </button>
 );
 
-const CELL = "px-4 py-3.5 align-middle text-[0.92rem]";
-const MUTED_CELL = `${CELL} text-ink-muted`;
+const HEADINGS = ["Ticket", "Subject", "Room", "Priority", "Status", "Waiting", "Assigned"];
 
 /**
  * Guest service tickets.
@@ -199,74 +199,59 @@ const TicketsListPage = () => {
         />
       </FilterPanel>
 
-      {!loading && tickets.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 border border-line px-6 py-14 text-center text-ink-dim">
-          <LifeBuoy size={28} aria-hidden="true" />
-          <p className="font-semibold text-ink">No tickets match these filters</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto border border-line bg-surface">
-          <table className="w-full min-w-[54rem] border-collapse">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {["Ticket", "Subject", "Room", "Priority", "Status", "Waiting", "Assigned"].map(
-                  (heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-[0.78rem] font-semibold tracking-wider text-ink-muted uppercase"
-                    >
-                      {heading}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-line last:border-b-0">
-                  <td className={CELL}>
-                    <Link to={`/tickets/${ticket.id}`} className={link}>
-                      {ticket.reference}
-                    </Link>
-                  </td>
-                  <td className={CELL}>
-                    {ticket.subject}
-                    <span className="ml-2 text-[0.78rem] text-ink-dim">
-                      {TICKET_CATEGORY_LABELS[ticket.category]}
-                    </span>
-                  </td>
-                  <td className={MUTED_CELL}>
-                    {ticket.room.roomNumber ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        <BedDouble size={14} aria-hidden="true" /> {ticket.room.roomNumber}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className={CELL}>
-                    <TicketPriorityPill priority={ticket.priority} />
-                  </td>
-                  <td className={CELL}>
-                    <TicketStatusPill status={ticket.status} />
-                  </td>
-                  <td className={`${CELL} whitespace-nowrap tabular-nums`}>
-                    {ticket.isOverdue ? (
-                      <span className="inline-flex items-center gap-1.5 text-red-700">
-                        <AlertTriangle size={14} aria-hidden="true" />
-                        {formatSince(ticket.createdAt)}
-                      </span>
-                    ) : (
-                      <span className="text-ink-muted">{formatSince(ticket.createdAt)}</span>
-                    )}
-                  </td>
-                  <td className={MUTED_CELL}>{ticket.assignedTo?.name ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        headings={HEADINGS}
+        minWidthClass="min-w-[54rem]"
+        loading={loading}
+        isEmpty={tickets.length === 0}
+        empty={{
+          icon: LifeBuoy,
+          title: "No tickets match these filters",
+          hint: "Clear the filters to see every ticket, or raise one if a guest needs something.",
+        }}
+      >
+        {tickets.map((ticket) => (
+          <tr key={ticket.id} className="[&:last-child>td]:border-b-0 hover:bg-surface-hover">
+            <td className={CELL}>
+              <Link to={`/tickets/${ticket.id}`} className={link}>
+                {ticket.reference}
+              </Link>
+            </td>
+            <td className={CELL}>
+              {ticket.subject}
+              <span className="ml-2 text-[0.78rem] text-ink-dim">
+                {TICKET_CATEGORY_LABELS[ticket.category]}
+              </span>
+            </td>
+            <td className={MUTED_CELL}>
+              {ticket.room.roomNumber ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <BedDouble size={14} aria-hidden="true" /> {ticket.room.roomNumber}
+                </span>
+              ) : (
+                "—"
+              )}
+            </td>
+            <td className={CELL}>
+              <TicketPriorityPill priority={ticket.priority} />
+            </td>
+            <td className={CELL}>
+              <TicketStatusPill status={ticket.status} />
+            </td>
+            <td className={`${CELL} whitespace-nowrap tabular-nums`}>
+              {ticket.isOverdue ? (
+                <span className="inline-flex items-center gap-1.5 text-red-700">
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  {formatSince(ticket.createdAt)}
+                </span>
+              ) : (
+                <span className="text-ink-muted">{formatSince(ticket.createdAt)}</span>
+              )}
+            </td>
+            <td className={MUTED_CELL}>{ticket.assignedTo?.name ?? "—"}</td>
+          </tr>
+        ))}
+      </DataTable>
 
       <Pagination
         pagination={data?.pagination ?? null}

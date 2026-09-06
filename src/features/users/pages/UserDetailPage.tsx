@@ -2,16 +2,13 @@ import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  BedDouble,
   MonitorSmartphone,
   Pencil,
   Save,
   ShieldCheck,
   Trash2,
   UserMinus,
-  Wallet,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { Address, ApiResponse, Role, User, UserStatus } from "../../../shared/api/types.ts";
@@ -78,25 +75,6 @@ const toEditableForm = (user: User): EditableForm => ({
     ),
   },
 });
-
-/** Placeholder for a module that has not been built yet. */
-const PendingModule = ({
-  icon: Icon,
-  title,
-  hint,
-}: {
-  icon: LucideIcon;
-  title: string;
-  hint: string;
-}) => (
-  <div className="mt-3 flex items-start gap-4 border border-dashed border-line p-4 first:mt-0">
-    <Icon size={22} aria-hidden="true" className="text-ink-dim" />
-    <div>
-      <p className="text-[0.92rem] font-semibold text-ink-muted">{title}</p>
-      <p className="text-[0.85rem] text-ink-dim">{hint}</p>
-    </div>
-  </div>
-);
 
 const UserDetailPage = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -330,21 +308,6 @@ const UserDetailPage = () => {
                 <DetailRow label="Created">{formatDateOnly(user.createdAt)}</DetailRow>
               </DetailList>
             )}
-          </section>
-
-          {/* ------------------------------------ deferred modules */}
-          <section className={card}>
-            <h2 className={cardTitle}>Activity</h2>
-            <PendingModule
-              icon={BedDouble}
-              title="Reservation history"
-              hint="Appears here once the Reservations module is built."
-            />
-            <PendingModule
-              icon={Wallet}
-              title="Spending"
-              hint="Total and per-booking spend arrive with the Payments module."
-            />
           </section>
         </div>
 

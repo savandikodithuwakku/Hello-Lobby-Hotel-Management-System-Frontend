@@ -1,3 +1,5 @@
+import type { FilterPatch } from "../../shared/hooks/useUrlFilters.ts";
+
 /** The reservation-list filter set, mirrored one-for-one into the URL. */
 export interface ReservationFilterState {
   search: string;
@@ -10,4 +12,4 @@ export interface ReservationFilterState {
   page: number;
 }
 
-export type ReservationFilterPatch = Partial<Record<keyof ReservationFilterState, string>>;
+export type ReservationFilterPatch = FilterPatch<ReservationFilterState>;

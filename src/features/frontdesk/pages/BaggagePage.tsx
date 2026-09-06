@@ -3,6 +3,7 @@ import { AlertTriangle, Briefcase, HandCoins, Luggage, Plus } from "lucide-react
 import type { Baggage } from "../../../shared/api/types.ts";
 import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
+import DataTable, { CELL } from "../../../shared/components/DataTable.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
@@ -51,7 +52,7 @@ const readFilters = (params: URLSearchParams): BaggageFilterState => ({
   page: Number(params.get("page")) || 1,
 });
 
-const CELL = "px-4 py-3.5 align-middle text-[0.92rem]";
+const HEADINGS = ["Tag", "Guest", "Pieces", "Where", "Taken in", "Status", ""];
 
 /**
  * Baggage held at the desk.
@@ -388,85 +389,68 @@ const BaggagePage = () => {
         />
       </FilterPanel>
 
-      {!loading && items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 border border-line px-6 py-14 text-center text-ink-dim">
-          <Briefcase size={28} aria-hidden="true" />
-          <p className="font-semibold text-ink">Nothing matches these filters</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto border border-line bg-surface">
-          <table className="w-full min-w-[52rem] border-collapse">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {["Tag", "Guest", "Pieces", "Where", "Taken in", "Status", ""].map((heading) => (
-                  <th
-                    key={heading}
-                    className="px-4 py-3 text-[0.78rem] font-semibold tracking-wider text-ink-muted uppercase"
+      <DataTable
+        headings={HEADINGS}
+        minWidthClass="min-w-[52rem]"
+        loading={loading}
+        isEmpty={items.length === 0}
+        empty={{
+          icon: Briefcase,
+          title: "Nothing matches these filters",
+          hint: "Clear the filters to see every record, including bags already handed back.",
+        }}
+      >
+        {items.map((item) => (
+          <tr key={item.id} className="[&:last-child>td]:border-b-0 hover:bg-surface-hover">
+            <td className={`${CELL} font-semibold`}>{item.tag}</td>
+            <td className={CELL}>
+              {item.guestName}
+              {item.reservation.reference && (
+                <span className="ml-2 text-[0.78rem] text-ink-dim">
+                  {item.reservation.reference}
+                </span>
+              )}
+            </td>
+            <td className={`${CELL} tabular-nums`}>
+              {item.bagCount}
+              {item.description && (
+                <span className="ml-2 text-[0.78rem] text-ink-dim">{item.description}</span>
+              )}
+            </td>
+            <td className={`${CELL} text-ink-muted`}>{item.location || "—"}</td>
+            <td className={`${CELL} whitespace-nowrap text-ink-muted`}>
+              {formatDateTime(item.receivedAt)}
+              {!item.isCollected && item.daysHeld > 0 && (
+                <span className="ml-2 text-[0.78rem] text-ink-dim">{item.daysHeld}d held</span>
+              )}
+            </td>
+            <td className={CELL}>
+              <span className={`${statusPillBase} ${baggageStatusPill[item.status]}`}>
+                {item.status === "unclaimed" && <AlertTriangle size={12} aria-hidden="true" />}
+                {BAGGAGE_STATUS_LABELS[item.status]}
+              </span>
+            </td>
+            <td className={CELL}>
+              {item.isCollected ? (
+                <span className="text-[0.8rem] text-ink-dim">
+                  {item.collectedByName || "collected"}
+                </span>
+              ) : (
+                <RequirePermission permissions={[PERMISSIONS.FRONTDESK_BAGGAGE_MANAGE]}>
+                  <button
+                    type="button"
+                    className={buttonSecondary}
+                    disabled={busy}
+                    onClick={() => setCollecting(item)}
                   >
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b border-line last:border-b-0">
-                  <td className={`${CELL} font-semibold`}>{item.tag}</td>
-                  <td className={CELL}>
-                    {item.guestName}
-                    {item.reservation.reference && (
-                      <span className="ml-2 text-[0.78rem] text-ink-dim">
-                        {item.reservation.reference}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`${CELL} tabular-nums`}>
-                    {item.bagCount}
-                    {item.description && (
-                      <span className="ml-2 text-[0.78rem] text-ink-dim">{item.description}</span>
-                    )}
-                  </td>
-                  <td className={`${CELL} text-ink-muted`}>{item.location || "—"}</td>
-                  <td className={`${CELL} whitespace-nowrap text-ink-muted`}>
-                    {formatDateTime(item.receivedAt)}
-                    {!item.isCollected && item.daysHeld > 0 && (
-                      <span className="ml-2 text-[0.78rem] text-ink-dim">
-                        {item.daysHeld}d held
-                      </span>
-                    )}
-                  </td>
-                  <td className={CELL}>
-                    <span className={`${statusPillBase} ${baggageStatusPill[item.status]}`}>
-                      {item.status === "unclaimed" && (
-                        <AlertTriangle size={12} aria-hidden="true" />
-                      )}
-                      {BAGGAGE_STATUS_LABELS[item.status]}
-                    </span>
-                  </td>
-                  <td className={CELL}>
-                    {item.isCollected ? (
-                      <span className="text-[0.8rem] text-ink-dim">
-                        {item.collectedByName || "collected"}
-                      </span>
-                    ) : (
-                      <RequirePermission permissions={[PERMISSIONS.FRONTDESK_BAGGAGE_MANAGE]}>
-                        <button
-                          type="button"
-                          className={buttonSecondary}
-                          disabled={busy}
-                          onClick={() => setCollecting(item)}
-                        >
-                          Hand back
-                        </button>
-                      </RequirePermission>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    Hand back
+                  </button>
+                </RequirePermission>
+              )}
+            </td>
+          </tr>
+        ))}
+      </DataTable>
 
       <Pagination
         pagination={data?.pagination ?? null}

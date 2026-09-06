@@ -3,7 +3,6 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BedDouble,
-  CalendarClock,
   Pencil,
   RotateCcw,
   Save,
@@ -313,24 +312,6 @@ const RoomDetailPage = () => {
                 <DetailRow label="Bookable now">{room.isBookable ? "Yes" : "No"}</DetailRow>
               </DetailList>
             )}
-          </section>
-
-          <section className={card}>
-            <h2 className={cardTitle}>
-              <CalendarClock size={20} aria-hidden="true" /> Reservations
-            </h2>
-            <div className="flex items-start gap-4 border border-dashed border-line p-4">
-              <CalendarClock size={22} aria-hidden="true" className="text-ink-dim" />
-              <div>
-                <p className="text-[0.92rem] font-semibold text-ink-muted">
-                  Bookings for this room
-                </p>
-                <p className="text-[0.85rem] text-ink-dim">
-                  Arrives with the reservation module. It will drive this room between reserved,
-                  occupied and cleaning on its own.
-                </p>
-              </div>
-            </div>
           </section>
         </div>
 
