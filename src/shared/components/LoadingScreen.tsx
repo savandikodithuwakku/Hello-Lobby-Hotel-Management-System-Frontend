@@ -1,5 +1,5 @@
 /** Full-page spinner shown while a route guard resolves the session. */
-const AuthLoadingScreen = ({ message = "Loading..." }: { message?: string }) => (
+const LoadingScreen = ({ message = "Loading..." }: { message?: string }) => (
   <div className="flex min-h-screen items-center justify-center bg-canvas">
     <Spinner message={message} />
   </div>
@@ -13,4 +13,4 @@ export const Spinner = ({ message }: { message: string }) => (
   </div>
 );
 
-export default AuthLoadingScreen;
+export default LoadingScreen;

@@ -16,7 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useAuth } from "../../features/auth/hooks/useAuth.ts";
+import { useAuth } from "../../features/auth/context/authContext.ts";
 import { PERMISSIONS, type Permission } from "../../features/auth/constants/rbac.ts";
 
 interface NavItem {

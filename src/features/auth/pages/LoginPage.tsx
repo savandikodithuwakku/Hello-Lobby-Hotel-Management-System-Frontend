@@ -3,12 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, LogIn, Mail } from "lucide-react";
 import { ApiClientError } from "../../../shared/api/httpClient.ts";
 import { fieldHint } from "../../../shared/ui/styles.ts";
-import { useAuth } from "../hooks/useAuth.ts";
-import type { RouteState } from "../types.ts";
+import { useAuth } from "../context/authContext.ts";
+import type { RouteState } from "../../../shared/types.ts";
 import AuthCard, { AuthCardLink } from "../components/AuthCard.tsx";
-import AlertMessage from "../components/AlertMessage.tsx";
-import FormField from "../components/FormField.tsx";
-import SubmitButton from "../components/SubmitButton.tsx";
+import { FormField } from "../../../shared/components/fields.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
 
 interface LoginForm {
   email: string;

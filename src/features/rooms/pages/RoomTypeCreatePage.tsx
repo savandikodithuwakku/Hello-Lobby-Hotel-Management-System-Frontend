@@ -3,8 +3,8 @@ import { ArrowLeft, BedDouble } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import { card, link } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import SubmitButton from "../../auth/components/SubmitButton.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
 import { roomTypesApi, type RoomTypePayload } from "../services/rooms.api.ts";
 import RoomTypeForm from "../components/RoomTypeForm.tsx";
 

@@ -11,7 +11,7 @@ import {
   link,
 } from "../../../shared/ui/styles.ts";
 import { formatPrice } from "../../../shared/ui/format.ts";
-import { OVERRIDE_REASON_MIN } from "../constants/policy.ts";
+import { OVERRIDE_REASON_MIN } from "../constants/frontdesk.ts";
 import BlockerList from "./BlockerList.tsx";
 
 interface ArrivalCardProps {

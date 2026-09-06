@@ -33,7 +33,7 @@ export interface CreateFormState {
  * clear the previous error, and either go to the new record or show what went
  * wrong.
  */
-export const useCreateForm = (): CreateFormState => {
+const useCreateForm = (): CreateFormState => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiClientError | null>(null);

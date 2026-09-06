@@ -1,5 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
-import { toQueryString } from "../../../shared/api/query.ts";
+import { toQueryString } from "../../../shared/api/httpClient.ts";
 import type {
   Invoice,
   PaymentMethod,
@@ -79,7 +79,7 @@ export interface RefundResult {
   settled: boolean;
 }
 
-export const paymentsApi = {
+const paymentsApi = {
   listInvoices: (params: InvoiceListParams = {}) =>
     httpClient.get<{ invoices: Invoice[]; pagination: Pagination }>(
       `/payments/invoices${toQueryString(params)}`

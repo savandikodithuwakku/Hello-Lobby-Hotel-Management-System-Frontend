@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { BedDouble, Coins, Users } from "lucide-react";
 import type { RoomType, RoomTypeImage } from "../../../shared/api/types.ts";
 import { fieldGroup, fieldHint, fieldLabel, input } from "../../../shared/ui/styles.ts";
-import FormField from "../../auth/components/FormField.tsx";
+import { FormField } from "../../../shared/components/fields.tsx";
 import type { RoomTypePayload } from "../services/rooms.api.ts";
 import FacilitiesEditor from "./FacilitiesEditor.tsx";
 import ImagesEditor from "./ImagesEditor.tsx";

@@ -30,7 +30,7 @@ export interface ChangePasswordPayload {
  * Typed wrapper around the auth endpoints. Components and the auth context
  * talk to this file instead of building URLs themselves.
  */
-export const authApi = {
+const authApi = {
   register: (payload: RegisterPayload) => httpClient.post<{ user: User }>("/auth/register", payload),
   login: (payload: LoginPayload) => httpClient.post<SessionPayload>("/auth/login", payload),
   logout: () => httpClient.post<null>("/auth/logout"),

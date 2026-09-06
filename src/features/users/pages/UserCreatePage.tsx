@@ -13,10 +13,10 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import FormField from "../../auth/components/FormField.tsx";
-import SubmitButton from "../../auth/components/SubmitButton.tsx";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { FormField } from "../../../shared/components/fields.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import { ROLES, ROLE_LEVELS } from "../../auth/constants/rbac.ts";
 import usersApi from "../services/users.api.ts";
 import { ADDRESS_FIELDS, EMPTY_ADDRESS, ROLE_OPTIONS } from "../constants/users.ts";

@@ -11,8 +11,8 @@ import {
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
 import { formatDateTime } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
 import { roomsApi } from "../../rooms/services/rooms.api.ts";
@@ -124,7 +124,7 @@ const HousekeepingBoardPage = () => {
     reload();
   };
 
-  if (loading && !data) return <AuthLoadingScreen message="Loading housekeeping..." />;
+  if (loading && !data) return <LoadingScreen message="Loading housekeeping..." />;
 
   return (
     <AppShell

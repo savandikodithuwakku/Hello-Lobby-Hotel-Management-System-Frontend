@@ -14,8 +14,9 @@ import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  column,
+  twoColumnGrid,
   actionRow,
   buttonDanger,
   buttonPrimary,
@@ -30,12 +31,13 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
+
 import { formatDateTime } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import ticketsApi from "../services/tickets.api.ts";
 import {
   ROOM_BLOCKING_CATEGORIES,
@@ -80,7 +82,7 @@ const TicketDetailPage = () => {
   const runTicketAction = (action: () => Promise<ApiResponse<{ ticket: Ticket }>>) =>
     run(action, (data) => setEdited(data.ticket));
 
-  if (loading && !ticket) return <AuthLoadingScreen message="Loading ticket..." />;
+  if (loading && !ticket) return <LoadingScreen message="Loading ticket..." />;
 
   if (!ticket) {
     return (

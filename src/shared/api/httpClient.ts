@@ -136,7 +136,7 @@ const request = async <TData>(
   return data as ApiResponse<TData>;
 };
 
-export const httpClient = {
+const httpClient = {
   get: <TData>(path: string, options?: RequestOptions) => request<TData>("GET", path, null, options),
   post: <TData>(path: string, body?: unknown, options?: RequestOptions) =>
     request<TData>("POST", path, body ?? null, options),
@@ -151,3 +151,23 @@ export const httpClient = {
 };
 
 export default httpClient;
+
+/**
+ * Builds the query string for a list request.
+ *
+ * Empty filters are dropped, so the URL only carries what the user actually
+ * chose and two identical searches produce an identical URL. It sits with the client that
+ * sends the request, because building the URL is the first half of making one.
+ */
+export const toQueryString = (params: object = {}): string => {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      search.set(key, String(value));
+    }
+  });
+
+  const query = search.toString();
+  return query ? `?${query}` : "";
+};

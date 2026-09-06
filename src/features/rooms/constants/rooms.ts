@@ -1,9 +1,9 @@
 import type { HousekeepingStatus, RoomOccupancy } from "../../../shared/api/types.ts";
-import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types.ts";
 
 // Re-exported so a rooms screen imports its formatting from one place.
 export { formatPrice, formatDateTime, formatOccupancy, CURRENCY } from "../../../shared/ui/format.ts";
-export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export { PAGE_SIZE } from "../../../shared/types.ts";
 export type { SelectOption };
 
 /**

@@ -1,5 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
-import { toQueryString } from "../../../shared/api/query.ts";
+import { toQueryString } from "../../../shared/api/httpClient.ts";
 import type { Baggage, BaggageStatistics, Pagination } from "../../../shared/api/types.ts";
 
 export interface BaggageListParams {
@@ -23,7 +23,7 @@ export interface StoreBaggagePayload {
   note?: string;
 }
 
-export const baggageApi = {
+const baggageApi = {
   list: (params: BaggageListParams = {}) =>
     httpClient.get<{ baggage: Baggage[]; pagination: Pagination }>(
       `/baggage${toQueryString(params)}`

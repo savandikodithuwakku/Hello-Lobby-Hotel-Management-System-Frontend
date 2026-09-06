@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BedDouble, CalendarSearch, Users } from "lucide-react";
+import { NumberField, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import NumberField from "../../../shared/components/form/NumberField.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import { buttonPrimary, card } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import { roomTypesApi } from "../services/rooms.api.ts";
 import { formatOccupancy, formatPrice, ROOM_TYPE_SORT_OPTIONS } from "../constants/rooms.ts";
 

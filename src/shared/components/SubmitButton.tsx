@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { buttonSubmit } from "../../../shared/ui/styles.ts";
+import { buttonSubmit } from "../ui/styles.ts";
 
 interface SubmitButtonProps {
   loading: boolean;

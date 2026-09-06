@@ -1,18 +1,16 @@
 import { Link } from "react-router-dom";
 import { AlertTriangle, BedDouble, LifeBuoy, Plus } from "lucide-react";
+import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import { buttonPrimary, link } from "../../../shared/ui/styles.ts";
 import { formatResultCount } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import ticketsApi from "../services/tickets.api.ts";
 import {
   DEFAULT_TICKET_SORT,

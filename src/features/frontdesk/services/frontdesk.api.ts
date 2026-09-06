@@ -1,5 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
-import { toQueryString } from "../../../shared/api/query.ts";
+import { toQueryString } from "../../../shared/api/httpClient.ts";
 import type {
   HousekeepingStatus,
   Invoice,
@@ -79,7 +79,7 @@ export interface HousekeepingBoard {
   byHousekeeping: Record<HousekeepingStatus, HousekeepingRoom[]>;
 }
 
-export const frontdeskApi = {
+const frontdeskApi = {
   /** Today at a glance: arrivals, departures and who is in the building. */
   board: () => httpClient.get<FrontDeskBoard>("/front-desk/board"),
 

@@ -5,10 +5,10 @@ import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import { card, cardTitle, buttonSecondary, link } from "../../../shared/ui/styles.ts";
 import { formatDateOnly } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import frontdeskApi from "../services/frontdesk.api.ts";
 import ArrivalCard from "../components/ArrivalCard.tsx";
 import DepartureCard from "../components/DepartureCard.tsx";
@@ -68,7 +68,7 @@ const FrontDeskBoardPage = () => {
     reload();
   };
 
-  if (loading && !data) return <AuthLoadingScreen message="Loading the front desk..." />;
+  if (loading && !data) return <LoadingScreen message="Loading the front desk..." />;
 
   const counts = data?.counts;
 

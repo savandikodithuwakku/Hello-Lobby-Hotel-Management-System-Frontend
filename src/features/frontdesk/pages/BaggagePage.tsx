@@ -1,10 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { AlertTriangle, Briefcase, HandCoins, Luggage, Plus } from "lucide-react";
 import type { Baggage } from "../../../shared/api/types.ts";
+import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
@@ -23,10 +21,10 @@ import {
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
 import { formatDateTime, formatResultCount } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import reservationsApi from "../../reservations/services/reservations.api.ts";
 import baggageApi from "../services/baggage.api.ts";
 import {

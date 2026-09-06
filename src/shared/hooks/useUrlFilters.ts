@@ -22,7 +22,7 @@ export interface UrlFilters<TState> {
  * Every list screen needs exactly this, so the reader function is the only
  * thing a screen supplies.
  */
-export const useUrlFilters = <TState>(
+const useUrlFilters = <TState>(
   readFilters: (params: URLSearchParams) => TState
 ): UrlFilters<TState> => {
   const [searchParams, setSearchParams] = useSearchParams();

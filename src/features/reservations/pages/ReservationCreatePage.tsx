@@ -14,13 +14,15 @@ import {
   input,
   link,
   select,
+  column,
+  twoColumnGrid,
 } from "../../../shared/ui/styles.ts";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
+
 import { dayFromToday, formatNights, formatOccupancy, formatPrice } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import SubmitButton from "../../auth/components/SubmitButton.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
 import { PERMISSIONS, ROLES } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import usersApi from "../../users/services/users.api.ts";
 import reservationsApi, { type ServiceLine } from "../services/reservations.api.ts";
 import { estimateAdvance } from "../constants/reservations.ts";

@@ -21,8 +21,9 @@ import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  column,
+  twoColumnGrid,
   buttonDanger,
   buttonPrimary,
   buttonSecondary,
@@ -31,13 +32,14 @@ import {
   cardTitle,
   link,
 } from "../../../shared/ui/styles.ts";
+
 import { formatDateOnly, formatNights, formatPrice } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS, type Permission } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
-import type { RouteState } from "../../auth/types.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
+import type { RouteState } from "../../../shared/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
 import paymentsApi from "../../payments/services/payments.api.ts";
 import frontdeskApi from "../../frontdesk/services/frontdesk.api.ts";
@@ -109,7 +111,7 @@ const ReservationDetailPage = () => {
     return done;
   };
 
-  if (loading) return <AuthLoadingScreen message="Loading reservation..." />;
+  if (loading) return <LoadingScreen message="Loading reservation..." />;
 
   if (!reservation) {
     return (

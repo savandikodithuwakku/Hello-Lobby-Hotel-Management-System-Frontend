@@ -5,11 +5,11 @@ import { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { Session } from "../../../shared/api/types.ts";
 import { buttonIcon, buttonSubmit } from "../../../shared/ui/styles.ts";
 import { formatDateTime } from "../../../shared/ui/format.ts";
-import { useAuth } from "../hooks/useAuth.ts";
+import { useAuth } from "../context/authContext.ts";
 import authApi from "../services/auth.api.ts";
 import AuthCard, { AuthCardLink } from "../components/AuthCard.tsx";
-import AlertMessage from "../components/AlertMessage.tsx";
-import { Spinner } from "../components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import { Spinner } from "../../../shared/components/LoadingScreen.tsx";
 
 /** Device management: shows every active session and lets the user revoke one. */
 const SessionsPage = () => {

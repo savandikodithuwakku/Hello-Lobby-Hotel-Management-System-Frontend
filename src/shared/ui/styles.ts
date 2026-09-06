@@ -80,3 +80,16 @@ export const statusPill: Record<UserStatus, string> = {
 /** Layout shared by every status pill, whatever its colour. */
 export const statusPillBase =
   "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold uppercase";
+
+/**
+ * Page-level layout recipes.
+ *
+ * These lived in a `layout.ts` next door whose own comment said it belonged
+ * beside the component recipes; it now is beside them.
+ */
+
+/** Main column plus a narrower side column, stacking below 1024px. */
+export const twoColumnGrid = "grid grid-cols-1 gap-8 lg:grid-cols-[2fr_1fr]";
+
+/** A single column of stacked cards inside `twoColumnGrid`. */
+export const column = "flex min-w-0 flex-col gap-8";

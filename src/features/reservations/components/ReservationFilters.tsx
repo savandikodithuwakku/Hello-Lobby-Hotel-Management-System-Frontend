@@ -1,11 +1,8 @@
 import { useId } from "react";
 import type { RoomType } from "../../../shared/api/types.ts";
-import DateField from "../../../shared/components/form/DateField.tsx";
-import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
+import { DateField, FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
-import type { SelectOption } from "../../../shared/types/options.ts";
+import type { SelectOption } from "../../../shared/types.ts";
 import { SORT_OPTIONS, STATUS_OPTIONS } from "../constants/reservations.ts";
 import type { ReservationFilterPatch, ReservationFilterState } from "../types.ts";
 

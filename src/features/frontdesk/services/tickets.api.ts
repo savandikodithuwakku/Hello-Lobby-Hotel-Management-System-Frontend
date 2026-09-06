@@ -1,5 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
-import { toQueryString } from "../../../shared/api/query.ts";
+import { toQueryString } from "../../../shared/api/httpClient.ts";
 import type {
   Pagination,
   Ticket,
@@ -46,7 +46,7 @@ export interface CreateTicketPayload {
   blocksRoom?: boolean;
 }
 
-export const ticketsApi = {
+const ticketsApi = {
   list: (params: TicketListParams = {}) =>
     httpClient.get<{ tickets: Ticket[]; pagination: Pagination }>(
       `/tickets${toQueryString(params)}`

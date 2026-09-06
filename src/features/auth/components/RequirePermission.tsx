@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Role } from "../../../shared/api/types.ts";
-import { useAuth } from "../hooks/useAuth.ts";
+import { useAuth } from "../context/authContext.ts";
 
 interface RequirePermissionProps {
   permissions?: string[];

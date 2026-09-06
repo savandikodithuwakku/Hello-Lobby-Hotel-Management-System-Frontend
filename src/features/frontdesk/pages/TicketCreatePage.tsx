@@ -14,11 +14,11 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import FormField from "../../auth/components/FormField.tsx";
-import SubmitButton from "../../auth/components/SubmitButton.tsx";
+import { FormField } from "../../../shared/components/fields.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 import reservationsApi from "../../reservations/services/reservations.api.ts";
 import ticketsApi from "../services/tickets.api.ts";
 import {

@@ -17,8 +17,9 @@ import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  column,
+  twoColumnGrid,
   actionRow,
   buttonDanger,
   buttonPrimary,
@@ -32,11 +33,12 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import type { RouteState } from "../../auth/types.ts";
+import type { RouteState } from "../../../shared/types.ts";
 import { roomTypesApi, roomsApi } from "../services/rooms.api.ts";
 import {
   formatDateTime,
@@ -101,7 +103,7 @@ const RoomDetailPage = () => {
   const runRoomAction = (action: () => Promise<ApiResponse<{ room: Room }>>) =>
     run(action, (data) => setEdited(data.room));
 
-  if (loading) return <AuthLoadingScreen message="Loading room..." />;
+  if (loading) return <LoadingScreen message="Loading room..." />;
 
   if (!room) {
     return (

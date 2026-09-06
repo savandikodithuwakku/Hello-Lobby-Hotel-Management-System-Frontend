@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth.ts";
-import AuthLoadingScreen from "./AuthLoadingScreen.tsx";
-import type { RouteState } from "../types.ts";
+import { useAuth } from "../context/authContext.ts";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
+import type { RouteState } from "../../../shared/types.ts";
 
 /**
  * Keeps already-signed-in users away from sign-in / registration screens and
@@ -14,7 +14,7 @@ const PublicOnlyRoute = ({ children }: { children?: ReactNode }) => {
   const state = location.state as RouteState | null;
 
   if (initialising) {
-    return <AuthLoadingScreen message="Checking your session..." />;
+    return <LoadingScreen message="Checking your session..." />;
   }
 
   if (isAuthenticated) {

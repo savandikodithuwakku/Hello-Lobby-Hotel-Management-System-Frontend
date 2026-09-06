@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import type { ApiFieldError } from "../../../shared/api/types.ts";
+import type { ApiFieldError } from "../api/types.ts";
 
 type AlertVariant = "error" | "success";
 

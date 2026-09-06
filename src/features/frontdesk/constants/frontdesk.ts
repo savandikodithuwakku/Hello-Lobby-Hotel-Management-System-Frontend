@@ -4,11 +4,11 @@ import type {
   TicketPriority,
   TicketStatus,
 } from "../../../shared/api/types.ts";
-import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types.ts";
 
 // Re-exported so a front-desk screen imports its formatting from one place.
 export { formatPrice, formatDateOnly, formatDateTime, CURRENCY } from "../../../shared/ui/format.ts";
-export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export { PAGE_SIZE } from "../../../shared/types.ts";
 export type { SelectOption };
 
 /* -------------------------------------------------------------------------- */
@@ -148,3 +148,17 @@ export const formatSince = (value: string | null): string => {
   return `${Math.round(ago / 1440)} d`;
 };
 
+/**
+ * Front-desk policy values the UI needs to know about.
+ *
+ * These mirror rules the API enforces. They live here so a form can tell
+ * somebody what is expected *before* they submit, rather than the server
+ * refusing and the person having to guess what was wrong. The server remains
+ * the authority - nothing here relaxes anything.
+ */
+
+/**
+ * The shortest override reason a manager may give when letting a guest in
+ * before their advance is paid. Matches `OVERRIDE_REASON_MIN` on the server.
+ */
+export const OVERRIDE_REASON_MIN = 10;

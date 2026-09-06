@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import { useAuth } from "../hooks/useAuth.ts";
+import { useAuth } from "../context/authContext.ts";
 import AuthCard, { AuthCardLink } from "../components/AuthCard.tsx";
-import AlertMessage from "../components/AlertMessage.tsx";
-import { Spinner } from "../components/AuthLoadingScreen.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import { Spinner } from "../../../shared/components/LoadingScreen.tsx";
 
 type Status = "verifying" | "success" | "error";
 

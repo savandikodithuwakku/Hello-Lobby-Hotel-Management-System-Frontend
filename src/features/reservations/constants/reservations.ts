@@ -1,7 +1,7 @@
 import type { ReservationStatus } from "../../../shared/api/types.ts";
-import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types.ts";
 
-export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export { PAGE_SIZE } from "../../../shared/types.ts";
 export type { SelectOption };
 
 export const RESERVATION_STATUSES = {

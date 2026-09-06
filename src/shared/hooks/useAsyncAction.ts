@@ -33,7 +33,7 @@ export interface AsyncActionState {
  * banner or the API's error, and re-enable the buttons afterwards. Each detail
  * page used to spell that out for itself; this is the single version.
  */
-export const useAsyncAction = (initialNotice: string | null = null): AsyncActionState => {
+const useAsyncAction = (initialNotice: string | null = null): AsyncActionState => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiClientError | null>(null);
   const [notice, setNotice] = useState<string | null>(initialNotice);

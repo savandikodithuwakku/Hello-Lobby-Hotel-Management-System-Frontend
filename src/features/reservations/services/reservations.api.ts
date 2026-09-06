@@ -1,5 +1,5 @@
 import httpClient from "../../../shared/api/httpClient.ts";
-import { toQueryString } from "../../../shared/api/query.ts";
+import { toQueryString } from "../../../shared/api/httpClient.ts";
 import type {
   AvailabilityResult,
   Pagination,
@@ -56,7 +56,7 @@ export type UpdateReservationPayload = Partial<
   Pick<CreateReservationPayload, "room" | "checkIn" | "checkOut" | "guests" | "additionalServices" | "specialRequests">
 >;
 
-export const reservationsApi = {
+const reservationsApi = {
   /** The double-booking check: only rooms free for the whole range come back. */
   availability: (params: AvailabilityParams) =>
     httpClient.get<AvailabilityResult>(`/reservations/availability${toQueryString(params)}`),

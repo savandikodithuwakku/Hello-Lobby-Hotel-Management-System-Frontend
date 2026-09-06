@@ -21,7 +21,7 @@ export interface ApiDataState<TData> {
  * `deps` works like the dependency array of `useEffect`: the request is sent
  * again whenever one of the values in it changes.
  */
-export const useApiData = <TData>(
+const useApiData = <TData>(
   load: () => Promise<TData>,
   deps: readonly unknown[]
 ): ApiDataState<TData> => {

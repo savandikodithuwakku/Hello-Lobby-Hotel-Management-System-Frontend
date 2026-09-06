@@ -1,11 +1,11 @@
 import type { Address, Role, UserStatus } from "../../../shared/api/types.ts";
 import { formatDateTime } from "../../../shared/ui/format.ts";
-import { toSelectOptions, type SelectOption } from "../../../shared/types/options.ts";
+import { toSelectOptions, type SelectOption } from "../../../shared/types.ts";
 import { ROLES, ROLE_LABELS } from "../../auth/constants/rbac.ts";
 
 // The user screens show dates and page sizes the way every other screen does.
 export { formatDateTime, formatDateOnly } from "../../../shared/ui/format.ts";
-export { PAGE_SIZE } from "../../../shared/constants/pagination.ts";
+export { PAGE_SIZE } from "../../../shared/types.ts";
 export type { SelectOption };
 
 export const USER_STATUSES = {

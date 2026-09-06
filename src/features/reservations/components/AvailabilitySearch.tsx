@@ -11,7 +11,7 @@ import {
   select,
 } from "../../../shared/ui/styles.ts";
 import { dayFromToday, formatNights, formatPrice, pluralize } from "../../../shared/ui/format.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import { roomTypesApi } from "../../rooms/services/rooms.api.ts";
 import reservationsApi from "../services/reservations.api.ts";
 

@@ -1,7 +1,4 @@
-import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
-import NumberField from "../../../shared/components/form/NumberField.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
+import { FilterPanel, NumberField, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
 import { ROOM_TYPE_SORT_OPTIONS } from "../constants/rooms.ts";
 import type { RoomTypeFilterPatch, RoomTypeFilterState } from "../types.ts";

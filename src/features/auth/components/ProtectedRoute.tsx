@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import type { Role } from "../../../shared/api/types.ts";
-import { useAuth } from "../hooks/useAuth.ts";
-import AuthLoadingScreen from "./AuthLoadingScreen.tsx";
+import { useAuth } from "../context/authContext.ts";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 
 interface ProtectedRouteProps {
   children?: ReactNode;
@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, roles = [], permissions = [] }: ProtectedRou
   const location = useLocation();
 
   if (initialising) {
-    return <AuthLoadingScreen message="Verifying your session..." />;
+    return <LoadingScreen message="Verifying your session..." />;
   }
 
   if (!isAuthenticated) {

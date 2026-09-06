@@ -19,8 +19,9 @@ import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  column,
+  twoColumnGrid,
   actionRow,
   buttonDanger,
   buttonPrimary,
@@ -37,12 +38,13 @@ import {
   statusPill,
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS, ROLE_LABELS, ROLE_LEVELS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
-import type { RouteState } from "../../auth/types.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
+import type { RouteState } from "../../../shared/types.ts";
 import usersApi from "../services/users.api.ts";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import { UnverifiedFlag } from "../components/UserTable.tsx";
@@ -189,7 +191,7 @@ const UserDetailPage = () => {
     }
   };
 
-  if (loading) return <AuthLoadingScreen message="Loading user..." />;
+  if (loading) return <LoadingScreen message="Loading user..." />;
 
   if (!user) {
     return (

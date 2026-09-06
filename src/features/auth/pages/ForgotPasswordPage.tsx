@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Mail, Send } from "lucide-react";
 import { ApiClientError } from "../../../shared/api/httpClient.ts";
-import { useAuth } from "../hooks/useAuth.ts";
+import { useAuth } from "../context/authContext.ts";
 import AuthCard, { AuthCardLink } from "../components/AuthCard.tsx";
-import AlertMessage from "../components/AlertMessage.tsx";
-import FormField from "../components/FormField.tsx";
-import SubmitButton from "../components/SubmitButton.tsx";
+import { FormField } from "../../../shared/components/fields.tsx";
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import SubmitButton from "../../../shared/components/SubmitButton.tsx";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");

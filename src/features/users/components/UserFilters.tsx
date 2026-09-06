@@ -1,6 +1,4 @@
-import FilterPanel from "../../../shared/components/form/FilterPanel.tsx";
-import SearchField from "../../../shared/components/form/SearchField.tsx";
-import SelectField from "../../../shared/components/form/SelectField.tsx";
+import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
 import { ROLE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from "../constants/users.ts";
 import type { UserFilterPatch, UserFilterState } from "../types.ts";

@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { KeyRound, MonitorSmartphone, Users } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import { twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  twoColumnGrid,
   buttonSecondary,
   buttonStack,
   card,
@@ -11,9 +11,10 @@ import {
   statusPill,
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
+
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS, ROLE_LABELS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/hooks/useAuth.ts";
+import { useAuthUser } from "../../auth/context/authContext.ts";
 
 const DashboardPage = () => {
   const { user } = useAuthUser();

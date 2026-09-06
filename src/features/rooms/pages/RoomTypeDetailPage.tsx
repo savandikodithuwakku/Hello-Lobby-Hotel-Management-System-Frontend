@@ -16,8 +16,9 @@ import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
 import useApiData from "../../../shared/hooks/useApiData.ts";
 import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import { column, twoColumnGrid } from "../../../shared/ui/layout.ts";
 import {
+  column,
+  twoColumnGrid,
   actionRow,
   buttonDanger,
   buttonPrimary,
@@ -26,11 +27,12 @@ import {
   cardTitle,
   link,
 } from "../../../shared/ui/styles.ts";
-import AlertMessage from "../../auth/components/AlertMessage.tsx";
-import AuthLoadingScreen from "../../auth/components/AuthLoadingScreen.tsx";
+
+import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import type { RouteState } from "../../auth/types.ts";
+import type { RouteState } from "../../../shared/types.ts";
 import { roomTypesApi, type RoomTypePayload } from "../services/rooms.api.ts";
 import { pluralize } from "../../../shared/ui/format.ts";
 import { formatOccupancy, formatPrice } from "../constants/rooms.ts";
@@ -61,7 +63,7 @@ const RoomTypeDetailPage = () => {
   const runTypeAction = (action: () => Promise<ApiResponse<{ roomType: RoomType }>>) =>
     run(action, (data) => setEdited(data.roomType));
 
-  if (loading) return <AuthLoadingScreen message="Loading room type..." />;
+  if (loading) return <LoadingScreen message="Loading room type..." />;
 
   if (!roomType) {
     return (
