@@ -16,8 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useAuth } from "../../features/auth/context/authContext.ts";
-import { PERMISSIONS, type Permission } from "../../features/auth/constants/rbac.ts";
+import { useAuth, PERMISSIONS, type Permission } from "../../features/auth/context/authContext.ts";
 
 interface NavItem {
   to: string;
@@ -110,7 +109,7 @@ const initialsOf = (name = ""): string =>
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
+    .map((part) => part[0].toUpperCase())
     .join("") || "?";
 
 interface AppShellProps {

@@ -3,8 +3,12 @@ import type { RoomType } from "../../../shared/api/types.ts";
 import { DateField, FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
 import type { SelectOption } from "../../../shared/types.ts";
-import { SORT_OPTIONS, STATUS_OPTIONS } from "../constants/reservations.ts";
-import type { ReservationFilterPatch, ReservationFilterState } from "../types.ts";
+import {
+  SORT_OPTIONS,
+  STATUS_OPTIONS,
+  type ReservationFilterPatch,
+  type ReservationFilterState,
+} from "../types.ts";
 
 interface ReservationFiltersProps {
   filters: ReservationFilterState;

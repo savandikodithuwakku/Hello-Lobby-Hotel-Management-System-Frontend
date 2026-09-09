@@ -1,7 +1,10 @@
 import { FilterPanel, NumberField, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
-import { ROOM_TYPE_SORT_OPTIONS } from "../constants/rooms.ts";
-import type { RoomTypeFilterPatch, RoomTypeFilterState } from "../types.ts";
+import {
+  ROOM_TYPE_SORT_OPTIONS,
+  type RoomTypeFilterPatch,
+  type RoomTypeFilterState,
+} from "../types.ts";
 
 interface RoomTypeFiltersProps {
   filters: RoomTypeFilterState;

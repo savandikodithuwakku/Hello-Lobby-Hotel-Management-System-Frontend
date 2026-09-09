@@ -4,7 +4,7 @@ import type { Room } from "../../../shared/api/types.ts";
 import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTable.tsx";
 import { link } from "../../../shared/ui/styles.ts";
 import RoomStatusPills from "./RoomStatusPill.tsx";
-import { formatFloor, formatPrice } from "../constants/rooms.ts";
+import { formatFloor, formatPrice } from "../types.ts";
 
 /** Marks a room that has been taken out of the inventory but kept on record. */
 export const InactiveFlag = () => (

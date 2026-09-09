@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,11 +10,10 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { ApiResponse, HousekeepingStatus, Room } from "../../../shared/api/types.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { ApiResponse, HousekeepingStatus, Room, RoomType } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import {
   column,
@@ -32,11 +31,10 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
-
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
+import { PERMISSIONS } from "../../auth/context/authContext.ts";
 import type { RouteState } from "../../../shared/types.ts";
 import { roomTypesApi, roomsApi } from "../services/rooms.api.ts";
 import {
@@ -44,7 +42,7 @@ import {
   formatFloor,
   formatOccupancy,
   formatPrice,
-} from "../constants/rooms.ts";
+} from "../types.ts";
 import RoomStatusPills from "../components/RoomStatusPill.tsx";
 import StatusChangePanel from "../components/StatusChangePanel.tsx";
 import FacilitiesEditor from "../components/FacilitiesEditor.tsx";
@@ -73,34 +71,71 @@ const RoomDetailPage = () => {
   const [form, setForm] = useState<EditableForm | null>(null);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 
-  // The room itself, plus the active types the edit form offers.
-  const { data: loaded, loading, error: loadError } = useApiData(
-    () => roomsApi.get(id).then((r) => r.data.room),
-    [id]
-  );
-  const { data: roomTypes } = useApiData(
-    () =>
-      roomTypesApi
-        .list({ isActive: "true", limit: 100, sort: "name" })
-        .then((r) => r.data.roomTypes),
-    []
-  );
-
-  // Every write returns the updated room, so what is shown is the edited copy
-  // once there is one, and the freshly loaded one until then.
-  const [edited, setEdited] = useState<Room | null>(null);
-  const room = edited ?? loaded;
-
-  const { busy, error: actionError, notice, run } = useAsyncAction(
+  // Every write returns the updated room, so the same piece of state holds the
+  // loaded copy and every later version of it.
+  const [room, setRoom] = useState<Room | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(
     (location.state as RouteState | null)?.message || null
   );
 
-  const error = actionError ?? loadError;
-  const typeOptions = roomTypes ?? [];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    roomsApi
+      .get(id)
+      .then((response) => {
+        if (cancelled) return;
+        setRoom(response.data.room);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setRoom(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // The active types the edit form offers never change with the room.
+  const [typeOptions, setTypeOptions] = useState<RoomType[]>([]);
+
+  useEffect(() => {
+    roomTypesApi
+      .list({ isActive: "true", limit: 100, sort: "name" })
+      .then((response) => setTypeOptions(response.data.roomTypes))
+      .catch(() => setTypeOptions([]));
+  }, []);
 
   /** Every write on this screen replaces the room shown above it. */
-  const runRoomAction = (action: () => Promise<ApiResponse<{ room: Room }>>) =>
-    run(action, (data) => setEdited(data.room));
+  const runRoomAction = async (
+    action: () => Promise<ApiResponse<{ room: Room }>>
+  ): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setRoom(response.data.room);
+      setNotice(response.message);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) return <LoadingScreen message="Loading room..." />;
 

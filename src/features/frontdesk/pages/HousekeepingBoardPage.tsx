@@ -1,9 +1,9 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Sparkles } from "lucide-react";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { HousekeepingStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import {
   buttonSecondary,
   cardTitle,
@@ -14,15 +14,18 @@ import { formatDateTime } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
+import { PERMISSIONS } from "../../auth/context/authContext.ts";
 import { roomsApi } from "../../rooms/services/rooms.api.ts";
 import {
   HOUSEKEEPING_LABELS,
   OCCUPANCY_LABELS,
   housekeepingPill,
   occupancyPill,
-} from "../../rooms/constants/rooms.ts";
-import frontdeskApi, { type HousekeepingRoom } from "../services/frontdesk.api.ts";
+} from "../../rooms/types.ts";
+import frontdeskApi, {
+  type HousekeepingBoard,
+  type HousekeepingRoom,
+} from "../services/frontdesk.api.ts";
 
 /**
  * The order the board reads in.
@@ -111,17 +114,46 @@ const RoomCard = ({
  * two separate facts about a room rather than one.
  */
 const HousekeepingBoardPage = () => {
-  const { data, loading, error: loadError, reload } = useApiData(
-    () => frontdeskApi.housekeeping().then((response) => response.data),
-    []
-  );
+  const [data, setData] = useState<HousekeepingBoard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const { busy, error: actionError, notice, run } = useAsyncAction();
-  const error = actionError ?? loadError;
+  // Moving one room along changes the counts above the board, so the board is
+  // fetched again after every change rather than patched in place.
+  const loadBoard = useCallback(() => {
+    setLoading(true);
+
+    frontdeskApi
+      .housekeeping()
+      .then((response) => {
+        setData(response.data);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        setError(apiError);
+        setData(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => loadBoard(), [loadBoard]);
 
   const advance = async (roomId: string, to: HousekeepingStatus) => {
-    await run(() => roomsApi.changeHousekeeping(roomId, to));
-    reload();
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await roomsApi.changeHousekeeping(roomId, to);
+      setNotice(response.message);
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+    } finally {
+      setBusy(false);
+      loadBoard();
+    }
   };
 
   if (loading && !data) return <LoadingScreen message="Loading housekeeping..." />;

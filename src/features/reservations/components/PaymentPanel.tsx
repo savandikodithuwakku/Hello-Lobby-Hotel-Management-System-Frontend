@@ -13,7 +13,7 @@ import {
   select,
 } from "../../../shared/ui/styles.ts";
 import { formatDateOnly, formatPrice, pluralize } from "../../../shared/ui/format.ts";
-import { daysUntil } from "../constants/reservations.ts";
+import { daysUntil } from "../types.ts";
 
 interface PaymentPanelProps {
   reservation: Reservation;

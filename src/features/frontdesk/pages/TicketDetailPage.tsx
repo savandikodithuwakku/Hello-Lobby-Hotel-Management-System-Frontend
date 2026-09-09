@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,11 +9,10 @@ import {
   Send,
   UserCheck,
 } from "lucide-react";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { ApiResponse, Ticket, TicketStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import {
   column,
   twoColumnGrid,
@@ -31,20 +30,18 @@ import {
   link,
   select,
 } from "../../../shared/ui/styles.ts";
-
 import { formatDateTime } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
-import ticketsApi from "../services/tickets.api.ts";
+import { PERMISSIONS, useAuthUser } from "../../auth/context/authContext.ts";
+import ticketsApi, { type AssignableStaff } from "../services/tickets.api.ts";
 import {
   ROOM_BLOCKING_CATEGORIES,
   TICKET_CATEGORY_LABELS,
   TICKET_STATUS_LABELS,
   formatSince,
-} from "../constants/frontdesk.ts";
+} from "../types.ts";
 import { TicketPriorityPill, TicketStatusPill } from "../components/TicketPills.tsx";
 
 /** Statuses that need somebody to say what was actually done. */
@@ -55,32 +52,74 @@ const TicketDetailPage = () => {
   const { hasPermission } = useAuthUser();
   const canManage = hasPermission(PERMISSIONS.FRONTDESK_TICKET_MANAGE);
 
-  const { data: loaded, loading, error: loadError } = useApiData(
-    () => ticketsApi.get(id).then((response) => response.data.ticket),
-    [id]
-  );
-
-  const [edited, setEdited] = useState<Ticket | null>(null);
-  const ticket = edited ?? loaded;
+  // Every action returns the updated ticket, so the same piece of state holds
+  // the loaded copy and every later version of it.
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [note, setNote] = useState("");
   const [nextStatus, setNextStatus] = useState<TicketStatus | "">("");
   const [resolution, setResolution] = useState("");
 
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    ticketsApi
+      .get(id)
+      .then((response) => {
+        if (cancelled) return;
+        setTicket(response.data.ticket);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setTicket(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
   // Only staff can hand a ticket to anybody, so only staff ask for the list.
-  const { data: assignable } = useApiData(
-    () =>
-      canManage
-        ? ticketsApi.assignees().then((response) => response.data.staff)
-        : Promise.resolve([]),
-    [canManage]
-  );
+  const [assignable, setAssignable] = useState<AssignableStaff[]>([]);
 
-  const { busy, error: actionError, notice, run } = useAsyncAction();
-  const error = actionError ?? loadError;
+  useEffect(() => {
+    if (!canManage) return;
 
-  const runTicketAction = (action: () => Promise<ApiResponse<{ ticket: Ticket }>>) =>
-    run(action, (data) => setEdited(data.ticket));
+    ticketsApi
+      .assignees()
+      .then((response) => setAssignable(response.data.staff))
+      .catch(() => setAssignable([]));
+  }, [canManage]);
+
+  const runTicketAction = async (
+    action: () => Promise<ApiResponse<{ ticket: Ticket }>>
+  ): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setTicket(response.data.ticket);
+      setNotice(response.message);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading && !ticket) return <LoadingScreen message="Loading ticket..." />;
 
@@ -258,7 +297,7 @@ const TicketDetailPage = () => {
                   }
                 >
                   <option value="">Nobody yet</option>
-                  {(assignable ?? []).map((person) => (
+                  {assignable.map((person) => (
                     <option key={person.id} value={person.id}>
                       {person.name}
                     </option>

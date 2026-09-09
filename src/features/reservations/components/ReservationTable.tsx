@@ -5,7 +5,7 @@ import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTabl
 import { link } from "../../../shared/ui/styles.ts";
 import { formatNights, formatOccupancy, formatPrice } from "../../../shared/ui/format.ts";
 import ReservationStatusPill from "./ReservationStatusPill.tsx";
-import { formatStay } from "../constants/reservations.ts";
+import { formatStay } from "../types.ts";
 
 const ReservationRow = ({ reservation, showGuest }: { reservation: Reservation; showGuest: boolean }) => (
   <tr className="[&:last-child>td]:border-b-0 hover:bg-surface-hover">

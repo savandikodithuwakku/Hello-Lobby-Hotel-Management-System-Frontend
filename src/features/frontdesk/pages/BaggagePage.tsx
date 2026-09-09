@@ -1,13 +1,18 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, Briefcase, HandCoins, Luggage, Plus } from "lucide-react";
-import type { Baggage } from "../../../shared/api/types.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type {
+  Baggage,
+  BaggageStatistics,
+  Pagination as PaginationInfo,
+  Reservation,
+} from "../../../shared/api/types.ts";
+import type { FilterPatch } from "../../../shared/types.ts";
 import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DataTable, { CELL } from "../../../shared/components/DataTable.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
-import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import {
   actionRow,
   buttonPrimary,
@@ -24,8 +29,7 @@ import {
 import { formatDateTime, formatResultCount } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, useAuthUser } from "../../auth/context/authContext.ts";
 import reservationsApi from "../../reservations/services/reservations.api.ts";
 import baggageApi from "../services/baggage.api.ts";
 import {
@@ -36,7 +40,7 @@ import {
   PAGE_SIZE,
   baggageStatusPill,
   formatBags,
-} from "../constants/frontdesk.ts";
+} from "../types.ts";
 
 interface BaggageFilterState {
   search: string;
@@ -65,7 +69,26 @@ const BaggagePage = () => {
   const { hasPermission } = useAuthUser();
   const canManage = hasPermission(PERMISSIONS.FRONTDESK_BAGGAGE_MANAGE);
 
-  const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = readFilters(searchParams);
+
+  const updateFilters = (patch: FilterPatch<BaggageFilterState>) => {
+    const next = new URLSearchParams(searchParams);
+
+    Object.entries(patch).forEach(([key, value]) => {
+      // An empty value means "no filter", so the key leaves the URL entirely
+      // instead of sitting there as `?status=`.
+      if (value) next.set(key, value);
+      else next.delete(key);
+    });
+
+    // Narrowing the list while on page 5 would usually show nothing, so any
+    // change other than the page itself goes back to page one.
+    if (!("page" in patch)) next.delete("page");
+
+    setSearchParams(next, { replace: true });
+  };
+
   const { search, status, sort, page } = filters;
 
   const [storing, setStoring] = useState(false);
@@ -81,40 +104,83 @@ const BaggagePage = () => {
   // The "hand bags back" form.
   const [collectedByName, setCollectedByName] = useState("");
 
-  const { busy, error: actionError, notice, run } = useAsyncAction();
+  const [items, setItems] = useState<Baggage[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [statistics, setStatistics] = useState<BaggageStatistics | null>(null);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const { data, loading, error: loadError, reload } = useApiData(
-    () =>
-      baggageApi
-        .list({ search, status, sort, page, limit: PAGE_SIZE })
-        .then((response) => response.data),
-    [search, status, sort, page]
-  );
+  const loadList = useCallback(() => {
+    setLoading(true);
 
-  const { data: statistics, reload: reloadStatistics } = useApiData(
-    () =>
-      canManage
-        ? baggageApi.statistics().then((response) => response.data)
-        : Promise.resolve(null),
-    [canManage]
-  );
+    baggageApi
+      .list({ search, status, sort, page, limit: PAGE_SIZE })
+      .then((response) => {
+        setItems(response.data.baggage);
+        setPagination(response.data.pagination);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        setError(apiError);
+        setItems([]);
+        setPagination(null);
+      })
+      .finally(() => setLoading(false));
+  }, [search, status, sort, page]);
 
-  const { data: reservationData } = useApiData(
-    () =>
-      canManage
-        ? reservationsApi
-            .list({ limit: 100, sort: "-createdAt" })
-            .then((response) => response.data.reservations)
-        : Promise.resolve([]),
-    [canManage]
-  );
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
-  const error = actionError ?? loadError;
-  const items = data?.baggage ?? [];
+  const loadStatistics = useCallback(() => {
+    if (!canManage) return;
 
+    baggageApi
+      .statistics()
+      .then((response) => setStatistics(response.data))
+      .catch(() => setStatistics(null));
+  }, [canManage]);
+
+  useEffect(() => {
+    loadStatistics();
+  }, [loadStatistics]);
+
+  // The bookings the "take bags in" form can attach a lot to.
+  useEffect(() => {
+    if (!canManage) return;
+
+    reservationsApi
+      .list({ limit: 100, sort: "-createdAt" })
+      .then((response) => setReservations(response.data.reservations))
+      .catch(() => setReservations([]));
+  }, [canManage]);
+
+  // Taking bags in or handing them back changes both the list and the counts
+  // above it, so both are fetched again rather than patched in place.
   const refresh = () => {
-    reload();
-    reloadStatistics();
+    loadList();
+    loadStatistics();
+  };
+
+  /** Runs one counter action, and says whether it went through. */
+  const run = async (action: () => Promise<{ message: string }>): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setNotice(response.message);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleStore = async (event: FormEvent<HTMLFormElement>) => {
@@ -233,7 +299,7 @@ const BaggagePage = () => {
                   onChange={(event) => setReservation(event.target.value)}
                 >
                   <option value="">No booking - a walk-in</option>
-                  {(reservationData ?? []).map((booking) => (
+                  {reservations.map((booking) => (
                     <option key={booking.id} value={booking.id}>
                       {booking.reference} — {booking.customer.name}
                     </option>
@@ -364,9 +430,9 @@ const BaggagePage = () => {
       <FilterPanel
         label="Filter baggage"
         gridClassName="grid gap-4 md:grid-cols-3"
-        resultSummary={formatResultCount(data?.pagination.total ?? null, "record")}
+        resultSummary={formatResultCount(pagination?.total ?? null, "record")}
         hasFilters={Boolean(search || status)}
-        onReset={resetFilters}
+        onReset={() => setSearchParams({}, { replace: true })}
       >
         <SearchField
           label="Search"
@@ -453,7 +519,7 @@ const BaggagePage = () => {
       </DataTable>
 
       <Pagination
-        pagination={data?.pagination ?? null}
+        pagination={pagination}
         onPageChange={(next) => updateFilters({ page: String(next) })}
         disabled={loading}
       />

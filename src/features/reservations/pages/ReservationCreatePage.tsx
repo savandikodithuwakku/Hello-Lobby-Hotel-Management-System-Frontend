@@ -1,10 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarCheck, User } from "lucide-react";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { AvailableRoom, User as AppUser } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import {
   card,
   cardTitle,
@@ -17,15 +16,13 @@ import {
   column,
   twoColumnGrid,
 } from "../../../shared/ui/styles.ts";
-
 import { dayFromToday, formatNights, formatOccupancy, formatPrice } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import SubmitButton from "../../../shared/components/SubmitButton.tsx";
-import { PERMISSIONS, ROLES } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, ROLES, useAuthUser } from "../../auth/context/authContext.ts";
 import usersApi from "../../users/services/users.api.ts";
 import reservationsApi, { type ServiceLine } from "../services/reservations.api.ts";
-import { estimateAdvance } from "../constants/reservations.ts";
+import { estimateAdvance } from "../types.ts";
 import AvailabilitySearch, { type StayQuery } from "../components/AvailabilitySearch.tsx";
 import ServicesEditor from "../components/ServicesEditor.tsx";
 
@@ -36,6 +33,7 @@ import ServicesEditor from "../components/ServicesEditor.tsx";
  * booking in the first place.
  */
 const ReservationCreatePage = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user: actor, hasPermission } = useAuthUser();
 
@@ -53,20 +51,20 @@ const ReservationCreatePage = () => {
   const [services, setServices] = useState<ServiceLine[]>([]);
   const [specialRequests, setSpecialRequests] = useState("");
 
-  const { submitting, error, submit } = useCreateForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
   // Staff book on behalf of a guest, so they need the customer list.
-  const { data: customerList } = useApiData<AppUser[]>(
-    () =>
-      isStaff
-        ? usersApi
-            .list({ role: ROLES.CUSTOMER, status: "active", limit: 100, sort: "name" })
-            .then((r) => r.data.users)
-        : Promise.resolve([]),
-    [isStaff]
-  );
+  const [customers, setCustomers] = useState<AppUser[]>([]);
 
-  const customers = customerList ?? [];
+  useEffect(() => {
+    if (!isStaff) return;
+
+    usersApi
+      .list({ role: ROLES.CUSTOMER, status: "active", limit: 100, sort: "name" })
+      .then((response) => setCustomers(response.data.users))
+      .catch(() => setCustomers([]));
+  }, [isStaff]);
 
   // A room chosen for one date range means nothing for another.
   useEffect(() => {
@@ -79,31 +77,41 @@ const ReservationCreatePage = () => {
   );
   const total = (room?.quote.roomSubtotal ?? 0) + servicesTotal;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!room) return undefined;
+    if (!room) return;
 
-    return submit(
-      () =>
-        reservationsApi.create({
-          room: room.id,
-          checkIn: stay.checkIn,
-          checkOut: stay.checkOut,
-          guests: stay.guests,
-          additionalServices: services,
-          specialRequests,
-          ...(isStaff && customerId ? { customer: customerId } : {}),
-        }),
-      ({ reservation }) => ({
-        to: `/reservations/${reservation.id}`,
-        message: `Booking ${reservation.reference} created. It is held until the advance is paid.`,
-      }),
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const response = await reservationsApi.create({
+        room: room.id,
+        checkIn: stay.checkIn,
+        checkOut: stay.checkOut,
+        guests: stay.guests,
+        additionalServices: services,
+        specialRequests,
+        ...(isStaff && customerId ? { customer: customerId } : {}),
+      });
+      const { reservation } = response.data;
+
+      // Replace the form in the history so the back button cannot resubmit it.
+      navigate(`/reservations/${reservation.id}`, {
+        replace: true,
+        state: {
+          message: `Booking ${reservation.reference} created. It is held until the advance is paid.`,
+        },
+      });
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+
       // The room may have been taken between the search and the submit, so the
       // choice is cleared and the operator sends the search again.
-      (apiError) => {
-        if (apiError.status === 409) setRoom(null);
-      }
-    );
+      if ((apiError as ApiClientError).status === 409) setRoom(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

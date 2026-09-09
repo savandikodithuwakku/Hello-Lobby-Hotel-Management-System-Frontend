@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BedDouble, CalendarSearch, Users } from "lucide-react";
 import { NumberField, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
 import { buttonPrimary, card } from "../../../shared/ui/styles.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { CatalogRoomType } from "../../../shared/api/types.ts";
 import { roomTypesApi } from "../services/rooms.api.ts";
-import { formatOccupancy, formatPrice, ROOM_TYPE_SORT_OPTIONS } from "../constants/rooms.ts";
+import { formatOccupancy, formatPrice, ROOM_TYPE_SORT_OPTIONS } from "../types.ts";
 
 /** "Recently added" is inventory news, not something a guest cares about. */
 const CATALOGUE_SORT_OPTIONS = ROOM_TYPE_SORT_OPTIONS.filter(
@@ -28,16 +29,36 @@ const RoomCatalogPage = () => {
   const [guests, setGuests] = useState("");
   const [sort, setSort] = useState("basePrice");
 
-  // The API already limits a guest to types that are actually for sale.
-  const { data, loading, error } = useApiData(
-    () =>
-      roomTypesApi
-        .browse({ search, occupancy: guests, sort, limit: 50 })
-        .then((r) => r.data.roomTypes),
-    [search, guests, sort]
-  );
+  const [roomTypes, setRoomTypes] = useState<CatalogRoomType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
-  const roomTypes = data ?? [];
+  // The API already limits a guest to types that are actually for sale.
+  useEffect(() => {
+    // A slow first search must not overwrite the answer to a faster later one.
+    let cancelled = false;
+    setLoading(true);
+
+    roomTypesApi
+      .browse({ search, occupancy: guests, sort, limit: 50 })
+      .then((response) => {
+        if (cancelled) return;
+        setRoomTypes(response.data.roomTypes);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setRoomTypes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [search, guests, sort]);
 
   return (
     <AppShell title="Our rooms">

@@ -12,7 +12,7 @@ interface AuthCardProps {
 /** Shared shell for every auth screen so pages stay focused on behaviour. */
 const AuthCard = ({ title, subtitle, children, footer }: AuthCardProps) => (
   <div className="flex min-h-screen items-center justify-center p-6">
-    <div className="w-full max-w-[480px] border border-line bg-surface p-10">
+    <div className="w-full max-w-120 border border-line bg-surface p-10">
       <h1 className="mb-2 text-center font-display text-[2.2rem] font-extrabold text-ink">
         {title}
       </h1>

@@ -85,10 +85,16 @@ const performRequest = async (
 };
 
 /**
- * Refreshes the access token at most once at a time: concurrent 401s all wait
- * on the same promise instead of firing a stampede of refresh calls.
+ * The one and only way the app asks for a new access token.
+ *
+ * Both callers go through here - the silent sign-in when the app starts, and
+ * the retry after a request comes back 401 - so a refresh is in flight at most
+ * once at a time. Everything else waits on the same promise instead of firing a
+ * second refresh, which matters because the API rotates the refresh token: two
+ * concurrent calls would race, and the loser would present a token the server
+ * had already retired.
  */
-const refreshAccessToken = (): Promise<SessionPayload> => {
+export const refreshSession = (): Promise<SessionPayload> => {
   if (!refreshPromise) {
     refreshPromise = performRequest("POST", "/auth/refresh", null, {})
       .then(({ response, data }) => {
@@ -118,7 +124,7 @@ const request = async <TData>(
 
   if (canRetry) {
     try {
-      await refreshAccessToken();
+      await refreshSession();
       ({ response, data } = await performRequest(method, path, body, options));
     } catch {
       setAccessToken(null);

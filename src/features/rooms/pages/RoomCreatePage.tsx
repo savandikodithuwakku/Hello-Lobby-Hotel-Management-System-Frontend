@@ -1,9 +1,7 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, DoorOpen, Hash, Layers } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import {
   card,
   fieldGroup,
@@ -15,8 +13,10 @@ import {
 import { FormField } from "../../../shared/components/fields.tsx";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import SubmitButton from "../../../shared/components/SubmitButton.tsx";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { RoomType } from "../../../shared/api/types.ts";
 import { roomTypesApi, roomsApi } from "../services/rooms.api.ts";
-import { formatOccupancy, formatPrice } from "../constants/rooms.ts";
+import { formatOccupancy, formatPrice } from "../types.ts";
 import FacilitiesEditor from "../components/FacilitiesEditor.tsx";
 
 const RoomCreatePage = () => {
@@ -26,38 +26,48 @@ const RoomCreatePage = () => {
   const [price, setPrice] = useState("");
   const [facilities, setFacilities] = useState<string[]>([]);
 
-  const { submitting, error, submit } = useCreateForm();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
   // Only active types can take new rooms, so those are the only ones offered.
-  const { data: types } = useApiData(
-    () =>
-      roomTypesApi
-        .list({ isActive: "true", limit: 100, sort: "name" })
-        .then((r) => r.data.roomTypes),
-    []
-  );
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
 
-  const roomTypes = types ?? [];
+  useEffect(() => {
+    roomTypesApi
+      .list({ isActive: "true", limit: 100, sort: "name" })
+      .then((response) => setRoomTypes(response.data.roomTypes))
+      .catch(() => setRoomTypes([]));
+  }, []);
+
   const selectedType = roomTypes.find((type) => type.id === roomType) || null;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
+    setSubmitting(true);
 
-    return submit(
-      () =>
-        roomsApi.create({
-          roomNumber,
-          roomType,
-          floor: Number(floor),
-          // An empty box means "charge whatever the type charges".
-          price: price.trim() === "" ? null : Number(price),
-          facilities,
-        }),
-      ({ room }) => ({
-        to: `/rooms/${room.id}`,
-        message: `Room ${room.roomNumber} added to the inventory.`,
-      })
-    );
+    try {
+      const response = await roomsApi.create({
+        roomNumber,
+        roomType,
+        floor: Number(floor),
+        // An empty box means "charge whatever the type charges".
+        price: price.trim() === "" ? null : Number(price),
+        facilities,
+      });
+      const { room } = response.data;
+
+      // Replace the form in the history so the back button cannot resubmit it.
+      navigate(`/rooms/${room.id}`, {
+        replace: true,
+        state: { message: `Room ${room.roomNumber} added to the inventory.` },
+      });
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

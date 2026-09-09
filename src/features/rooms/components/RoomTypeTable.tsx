@@ -3,7 +3,7 @@ import { BedDouble } from "lucide-react";
 import type { RoomType } from "../../../shared/api/types.ts";
 import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTable.tsx";
 import { link } from "../../../shared/ui/styles.ts";
-import { formatOccupancy, formatPrice } from "../constants/rooms.ts";
+import { formatOccupancy, formatPrice } from "../types.ts";
 import { InactiveFlag } from "./RoomTable.tsx";
 
 const RoomTypeRow = ({ roomType }: { roomType: RoomType }) => (

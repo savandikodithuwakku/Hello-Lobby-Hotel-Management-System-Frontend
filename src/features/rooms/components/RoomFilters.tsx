@@ -7,8 +7,9 @@ import {
   HOUSEKEEPING_OPTIONS,
   OCCUPANCY_OPTIONS,
   ROOM_SORT_OPTIONS,
-} from "../constants/rooms.ts";
-import type { RoomFilterPatch, RoomFilterState } from "../types.ts";
+  type RoomFilterPatch,
+  type RoomFilterState,
+} from "../types.ts";
 
 interface RoomFiltersProps {
   filters: RoomFilterState;

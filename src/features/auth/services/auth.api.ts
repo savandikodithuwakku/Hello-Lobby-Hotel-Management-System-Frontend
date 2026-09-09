@@ -36,8 +36,9 @@ const authApi = {
   logout: () => httpClient.post<null>("/auth/logout"),
   logoutAllDevices: () => httpClient.post<null>("/auth/logout-all"),
 
-  // `skipRefresh` avoids a pointless refresh-retry loop on the refresh call.
-  refresh: () => httpClient.post<SessionPayload>("/auth/refresh", null, { skipRefresh: true }),
+  // No `refresh` here on purpose: refreshing lives in the HTTP client, as
+  // `refreshSession`, because that is the only place that can guarantee a
+  // single refresh is in flight at a time.
 
   verifyEmail: (token: string) => httpClient.post<null>(`/auth/verify-email/${token}`),
   resendVerification: (email: string) =>

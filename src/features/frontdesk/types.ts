@@ -1,14 +1,21 @@
+/**
+ * The front-desk module's own labels and small helpers.
+ *
+ * Ticket and baggage wording, the pill styles and the "how long ago" helper
+ * belong to this feature, so they live together rather than in a constants
+ * file of their own.
+ */
 import type {
   BaggageStatus,
   TicketCategory,
   TicketPriority,
   TicketStatus,
-} from "../../../shared/api/types.ts";
-import { toSelectOptions, type SelectOption } from "../../../shared/types.ts";
+} from "../../shared/api/types.ts";
+import { toSelectOptions, type SelectOption } from "../../shared/types.ts";
 
 // Re-exported so a front-desk screen imports its formatting from one place.
-export { formatPrice, formatDateOnly, formatDateTime, CURRENCY } from "../../../shared/ui/format.ts";
-export { PAGE_SIZE } from "../../../shared/types.ts";
+export { formatPrice, formatDateOnly, formatDateTime, CURRENCY } from "../../shared/ui/format.ts";
+export { PAGE_SIZE } from "../../shared/types.ts";
 export type { SelectOption };
 
 /* -------------------------------------------------------------------------- */

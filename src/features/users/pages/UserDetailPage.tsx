@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,8 +14,6 @@ import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { Address, ApiResponse, Role, User, UserStatus } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import {
   column,
   twoColumnGrid,
@@ -35,12 +33,15 @@ import {
   statusPill,
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
-
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS, ROLE_LABELS, ROLE_LEVELS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import {
+  PERMISSIONS,
+  ROLE_LABELS,
+  ROLE_LEVELS,
+  useAuthUser,
+} from "../../auth/context/authContext.ts";
 import type { RouteState } from "../../../shared/types.ts";
 import usersApi from "../services/users.api.ts";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
@@ -54,7 +55,7 @@ import {
   formatAddress,
   formatDate,
   formatDateOnly,
-} from "../constants/users.ts";
+} from "../types.ts";
 
 interface EditableForm {
   name: string;
@@ -86,21 +87,40 @@ const UserDetailPage = () => {
   const [form, setForm] = useState<EditableForm | null>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
 
-  const { data: loaded, loading, error: loadError } = useApiData(
-    () => usersApi.get(id).then((r) => r.data.user),
-    [id]
-  );
-
-  // Every administrative write returns the updated account, so it replaces the
-  // loaded copy without a second round trip.
-  const [edited, setEdited] = useState<User | null>(null);
-  const user = edited ?? loaded;
-
-  const { busy, error: actionError, notice, setError, setNotice, run } = useAsyncAction(
+  // Every administrative write returns the updated account, so the same piece
+  // of state holds the loaded copy and every later version of it.
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(
     (location.state as RouteState | null)?.message || null
   );
 
-  const error = actionError ?? loadError;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    usersApi
+      .get(id)
+      .then((response) => {
+        if (cancelled) return;
+        setUser(response.data.user);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   // An actor may only act on accounts strictly below their own level, and
   // never on their own record through these admin screens.
@@ -115,17 +135,23 @@ const UserDetailPage = () => {
   const runUserAction = async (
     action: () => Promise<ApiResponse<{ user?: User } | null>>,
     successMessage: string
-  ) => {
-    const done = await run(
-      action,
-      (data) => {
-        if (data?.user) setEdited(data.user);
-      },
-      successMessage
-    );
+  ): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
 
-    setConfirming(null);
-    return done;
+    try {
+      const response = await action();
+      if (response.data?.user) setUser(response.data.user);
+      setNotice(successMessage);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+      setConfirming(null);
+    }
   };
 
   const startEditing = () => {

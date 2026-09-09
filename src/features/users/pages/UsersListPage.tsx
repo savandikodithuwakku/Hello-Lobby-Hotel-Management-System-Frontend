@@ -1,16 +1,16 @@
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import { PAGE_SIZE, type RouteState } from "../../../shared/types.ts";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import { buttonPrimary, card } from "../../../shared/ui/styles.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import usersApi from "../services/users.api.ts";
-import type { UserFilterState } from "../types.ts";
+import { PERMISSIONS } from "../../auth/context/authContext.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import usersApi, { type UserListResult } from "../services/users.api.ts";
+import type { UserFilterPatch, UserFilterState } from "../types.ts";
 import UserFilters from "../components/UserFilters.tsx";
 import UserTable from "../components/UserTable.tsx";
 
@@ -30,15 +30,60 @@ const readFilters = (params: URLSearchParams): UserFilterState => ({
 
 const UsersListPage = () => {
   const location = useLocation();
-  const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
   const notice = (location.state as RouteState | null)?.message || null;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = readFilters(searchParams);
   const { search, role, status, sort, page } = filters;
 
-  const { data, loading, error } = useApiData(
-    () => usersApi.list({ search, role, status, sort, page, limit: PAGE_SIZE }).then((r) => r.data),
-    [search, role, status, sort, page]
-  );
+  const updateFilters = (patch: UserFilterPatch) => {
+    const next = new URLSearchParams(searchParams);
+
+    Object.entries(patch).forEach(([key, value]) => {
+      // An empty value means "no filter", so the key leaves the URL entirely
+      // instead of sitting there as `?status=`.
+      if (value) next.set(key, value);
+      else next.delete(key);
+    });
+
+    // Narrowing the list while on page 5 would usually show nothing, so any
+    // change other than the page itself goes back to page one.
+    if (!("page" in patch)) next.delete("page");
+
+    setSearchParams(next, { replace: true });
+  };
+
+  const [data, setData] = useState<UserListResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiClientError | null>(null);
+
+  useEffect(() => {
+    // If the filters change while a request is still in flight, the answer to
+    // the old request must not be written into state - otherwise a fast second
+    // search can be overwritten by a slow first one.
+    let cancelled = false;
+    setLoading(true);
+
+    usersApi
+      .list({ search, role, status, sort, page, limit: PAGE_SIZE })
+      .then((response) => {
+        if (cancelled) return;
+        setData(response.data);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [search, role, status, sort, page]);
 
   return (
     <AppShell
@@ -58,7 +103,7 @@ const UsersListPage = () => {
         <UserFilters
           filters={filters}
           onChange={updateFilters}
-          onReset={resetFilters}
+          onReset={() => setSearchParams({}, { replace: true })}
           resultCount={loading ? null : (data?.pagination.total ?? 0)}
         />
 

@@ -3,8 +3,8 @@ import { UserX } from "lucide-react";
 import type { User } from "../../../shared/api/types.ts";
 import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTable.tsx";
 import { link, statusPill, statusPillBase } from "../../../shared/ui/styles.ts";
-import { ROLE_LABELS } from "../../auth/constants/rbac.ts";
-import { STATUS_LABELS, formatDate, formatDateOnly } from "../constants/users.ts";
+import { ROLE_LABELS } from "../../auth/context/authContext.ts";
+import { STATUS_LABELS, formatDate, formatDateOnly } from "../types.ts";
 
 /** Small amber "unverified" marker shown next to an unconfirmed address. */
 export const UnverifiedFlag = () => (

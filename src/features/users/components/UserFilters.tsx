@@ -1,7 +1,12 @@
 import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import { formatResultCount } from "../../../shared/ui/format.ts";
-import { ROLE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from "../constants/users.ts";
-import type { UserFilterPatch, UserFilterState } from "../types.ts";
+import {
+  ROLE_OPTIONS,
+  SORT_OPTIONS,
+  STATUS_OPTIONS,
+  type UserFilterPatch,
+  type UserFilterState,
+} from "../types.ts";
 
 interface UserFiltersProps {
   filters: UserFilterState;

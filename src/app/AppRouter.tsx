@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute.tsx";
 import PublicOnlyRoute from "../features/auth/components/PublicOnlyRoute.tsx";
-import { PERMISSIONS } from "../features/auth/constants/rbac.ts";
+import { PERMISSIONS } from "../features/auth/context/authContext.ts";
 import LoginPage from "../features/auth/pages/LoginPage.tsx";
 import RegisterPage from "../features/auth/pages/RegisterPage.tsx";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage.tsx";

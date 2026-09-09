@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail, Phone, User, UserPlus } from "lucide-react";
 import type { Address, Role } from "../../../shared/api/types.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import {
   card,
   fieldGroup,
@@ -16,10 +16,9 @@ import {
 import { FormField } from "../../../shared/components/fields.tsx";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import SubmitButton from "../../../shared/components/SubmitButton.tsx";
-import { useAuthUser } from "../../auth/context/authContext.ts";
-import { ROLES, ROLE_LEVELS } from "../../auth/constants/rbac.ts";
+import { useAuthUser, ROLES, ROLE_LEVELS } from "../../auth/context/authContext.ts";
 import usersApi from "../services/users.api.ts";
-import { ADDRESS_FIELDS, EMPTY_ADDRESS, ROLE_OPTIONS } from "../constants/users.ts";
+import { ADDRESS_FIELDS, EMPTY_ADDRESS, ROLE_OPTIONS } from "../types.ts";
 
 interface CreateForm {
   name: string;
@@ -40,7 +39,9 @@ const UserCreatePage = () => {
     address: { ...EMPTY_ADDRESS },
   });
 
-  const { submitting, error, submit } = useCreateForm();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
   const setField = (field: "name" | "email" | "phone") => (value: string) =>
     setForm((current) => ({ ...current, [field]: value }));
@@ -54,23 +55,31 @@ const UserCreatePage = () => {
     (option) => ROLE_LEVELS[option.value] < ROLE_LEVELS[actor.role]
   );
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
+    setSubmitting(true);
 
-    return submit(
-      () =>
-        usersApi.create({
-          name: form.name,
-          email: form.email,
-          phone: form.phone || undefined,
-          role: form.role,
-          address: form.address,
-        }),
-      ({ user }) => ({
-        to: `/users/${user.id}`,
-        message: `Invitation sent to ${user.email}.`,
-      })
-    );
+    try {
+      const response = await usersApi.create({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || undefined,
+        role: form.role,
+        address: form.address,
+      });
+      const { user } = response.data;
+
+      // Replace the form in the history so the back button cannot resubmit it.
+      navigate(`/users/${user.id}`, {
+        replace: true,
+        state: { message: `Invitation sent to ${user.email}.` },
+      });
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

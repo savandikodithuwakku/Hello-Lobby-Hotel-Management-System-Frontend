@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,11 +10,10 @@ import {
   Save,
   X,
 } from "lucide-react";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type { ApiResponse, RoomType } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import {
   column,
@@ -27,15 +26,14 @@ import {
   cardTitle,
   link,
 } from "../../../shared/ui/styles.ts";
-
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
+import { PERMISSIONS } from "../../auth/context/authContext.ts";
 import type { RouteState } from "../../../shared/types.ts";
 import { roomTypesApi, type RoomTypePayload } from "../services/rooms.api.ts";
 import { pluralize } from "../../../shared/ui/format.ts";
-import { formatOccupancy, formatPrice } from "../constants/rooms.ts";
+import { formatOccupancy, formatPrice } from "../types.ts";
 import RoomTypeForm from "../components/RoomTypeForm.tsx";
 
 const RoomTypeDetailPage = () => {
@@ -45,23 +43,60 @@ const RoomTypeDetailPage = () => {
   const [editing, setEditing] = useState(false);
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
 
-  const { data: loaded, loading, error: loadError } = useApiData(
-    () => roomTypesApi.get(id).then((r) => r.data.roomType),
-    [id]
-  );
-
-  // Every write returns the updated type, so it replaces the loaded copy.
-  const [edited, setEdited] = useState<RoomType | null>(null);
-  const roomType = edited ?? loaded;
-
-  const { busy, error: actionError, notice, run } = useAsyncAction(
+  // Every write returns the updated type, so the same piece of state holds the
+  // loaded copy and every later version of it.
+  const [roomType, setRoomType] = useState<RoomType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(
     (location.state as RouteState | null)?.message || null
   );
 
-  const error = actionError ?? loadError;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
 
-  const runTypeAction = (action: () => Promise<ApiResponse<{ roomType: RoomType }>>) =>
-    run(action, (data) => setEdited(data.roomType));
+    roomTypesApi
+      .get(id)
+      .then((response) => {
+        if (cancelled) return;
+        setRoomType(response.data.roomType);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setRoomType(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const runTypeAction = async (
+    action: () => Promise<ApiResponse<{ roomType: RoomType }>>
+  ): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setRoomType(response.data.roomType);
+      setNotice(response.message);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) return <LoadingScreen message="Loading room type..." />;
 

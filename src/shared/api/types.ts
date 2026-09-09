@@ -246,7 +246,7 @@ export interface ReservationHistoryEntry {
 
 /** A free room plus what it would cost for the requested stay. */
 export interface AvailableRoom extends Room {
-  quote: { nights: number; ratePerNight: number; roomSubtotal: number };
+  quote: { nights: number; ratePerNight: number | null; roomSubtotal: number };
 }
 
 /** Why an availability search came back empty, so the UI can explain itself. */

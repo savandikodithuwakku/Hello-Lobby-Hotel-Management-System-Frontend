@@ -56,3 +56,11 @@ export interface RouteState {
   /** Pre-fills the address box on the resend-verification screen. */
   email?: string;
 }
+
+/* ---------------------------------------------------------------- filters */
+
+/**
+ * A partial update to a list screen's filter set. Omitted keys keep the value
+ * they already have in the URL.
+ */
+export type FilterPatch<TState> = Partial<Record<keyof TState, string>>;

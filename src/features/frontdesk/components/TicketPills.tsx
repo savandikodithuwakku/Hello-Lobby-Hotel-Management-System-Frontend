@@ -5,7 +5,7 @@ import {
   TICKET_STATUS_LABELS,
   ticketPriorityPill,
   ticketStatusPill,
-} from "../constants/frontdesk.ts";
+} from "../types.ts";
 
 export const TicketStatusPill = ({ status }: { status: TicketStatus }) => (
   <span className={`${statusPillBase} ${ticketStatusPill[status]}`}>

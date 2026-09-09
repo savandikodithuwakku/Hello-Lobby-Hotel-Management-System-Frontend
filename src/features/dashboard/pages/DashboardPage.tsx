@@ -11,10 +11,8 @@ import {
   statusPill,
   statusPillBase,
 } from "../../../shared/ui/styles.ts";
-
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS, ROLE_LABELS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, ROLE_LABELS, useAuthUser } from "../../auth/context/authContext.ts";
 
 const DashboardPage = () => {
   const { user } = useAuthUser();

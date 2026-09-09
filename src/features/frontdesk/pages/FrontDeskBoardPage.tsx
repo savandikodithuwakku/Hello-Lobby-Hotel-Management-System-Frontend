@@ -1,15 +1,14 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BedDouble, DoorOpen, LogOut, Sparkles, Users } from "lucide-react";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import { card, cardTitle, buttonSecondary, link } from "../../../shared/ui/styles.ts";
 import { formatDateOnly } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
-import frontdeskApi from "../services/frontdesk.api.ts";
+import { PERMISSIONS, useAuthUser } from "../../auth/context/authContext.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import frontdeskApi, { type FrontDeskBoard } from "../services/frontdesk.api.ts";
 import ArrivalCard from "../components/ArrivalCard.tsx";
 import DepartureCard from "../components/DepartureCard.tsx";
 
@@ -50,23 +49,55 @@ const EmptyRow = ({ message }: { message: string }) => (
 const FrontDeskBoardPage = () => {
   const { hasPermission } = useAuthUser();
 
-  const { data, loading, error: loadError, reload } = useApiData(
-    () => frontdeskApi.board().then((response) => response.data),
-    []
-  );
+  const [data, setData] = useState<FrontDeskBoard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const { busy, error: actionError, notice, run } = useAsyncAction();
-  const error = actionError ?? loadError;
+  // Checking somebody in or out changes the whole board, so the board is
+  // fetched again after every action rather than patched in place.
+  const loadBoard = useCallback(() => {
+    setLoading(true);
 
-  const checkIn = async (reservationId: string, overrideReason?: string) => {
-    await run(() => frontdeskApi.checkIn(reservationId, { overrideReason }));
-    reload();
+    frontdeskApi
+      .board()
+      .then((response) => {
+        setData(response.data);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        setError(apiError);
+        setData(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadBoard();
+  }, [loadBoard]);
+
+  const runDeskAction = async (action: () => Promise<{ message: string }>) => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setNotice(response.message);
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+    } finally {
+      setBusy(false);
+      loadBoard();
+    }
   };
 
-  const checkOut = async (reservationId: string) => {
-    await run(() => frontdeskApi.checkOut(reservationId));
-    reload();
-  };
+  const checkIn = (reservationId: string, overrideReason?: string) =>
+    runDeskAction(() => frontdeskApi.checkIn(reservationId, { overrideReason }));
+
+  const checkOut = (reservationId: string) =>
+    runDeskAction(() => frontdeskApi.checkOut(reservationId));
 
   if (loading && !data) return <LoadingScreen message="Loading the front desk..." />;
 

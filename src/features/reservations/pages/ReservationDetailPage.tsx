@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,15 +11,16 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
 import type {
   ApiResponse,
+  PaymentMethodOption,
   Reservation,
+  ReservationHistoryEntry,
   ReservationStatus,
 } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import ConfirmPanel from "../../../shared/components/ConfirmPanel.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useAsyncAction from "../../../shared/hooks/useAsyncAction.ts";
 import DetailRow, { DetailList } from "../../../shared/components/DetailRow.tsx";
 import {
   column,
@@ -32,18 +33,16 @@ import {
   cardTitle,
   link,
 } from "../../../shared/ui/styles.ts";
-
 import { formatDateOnly, formatNights, formatPrice } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import LoadingScreen from "../../../shared/components/LoadingScreen.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS, type Permission } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, type Permission, useAuthUser } from "../../auth/context/authContext.ts";
 import type { RouteState } from "../../../shared/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
 import paymentsApi from "../../payments/services/payments.api.ts";
 import frontdeskApi from "../../frontdesk/services/frontdesk.api.ts";
-import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../constants/reservations.ts";
+import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../types.ts";
 import ReservationStatusPill from "../components/ReservationStatusPill.tsx";
 import PaymentPanel from "../components/PaymentPanel.tsx";
 import HistoryTimeline from "../components/HistoryTimeline.tsx";
@@ -52,10 +51,8 @@ import HistoryTimeline from "../components/HistoryTimeline.tsx";
  * The front-desk actions this card offers, each with the permission it needs.
  *
  * Declared as data so the card can ask "is there anything here for the person
- * looking?" before it renders anything. It used to appear whenever the booking
- * had any move available at all, regardless of who was viewing - so a guest,
- * who holds none of these permissions, was shown a "Front desk" heading with
- * an empty box underneath it.
+ * looking?" before it renders anything. Without that check a guest, who holds
+ * none of these permissions, would see a "Front desk" heading over an empty box.
  */
 const FRONT_DESK_ACTIONS: { transition: ReservationStatus; permission: Permission }[] = [
   { transition: RESERVATION_STATUSES.CONFIRMED, permission: PERMISSIONS.RESERVATION_UPDATE },
@@ -72,43 +69,83 @@ const ReservationDetailPage = () => {
 
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
-  const { data: loaded, loading, error: loadError } = useApiData(
-    () => reservationsApi.get(id).then((r) => r.data.reservation),
-    [id]
-  );
-
-  // The audit trail is reloaded after every action, because each one adds an
-  // entry to it.
-  const { data: historyData, reload: reloadHistory } = useApiData(
-    () => reservationsApi.history(id).then((r) => r.data.history),
-    [id]
-  );
-
-  // Which ways of paying the server can actually handle. Asked for rather than
-  // hard-coded, so the form never offers a method that would be refused.
-  const { data: methodData } = useApiData(
-    () => paymentsApi.methods().then((r) => r.data.methods),
-    []
-  );
-
-  // Every action returns the updated booking, so it replaces the loaded copy.
-  const [edited, setEdited] = useState<Reservation | null>(null);
-  const reservation = edited ?? loaded;
-  const history = historyData ?? [];
-
-  const { busy, error: actionError, notice, run } = useAsyncAction(
+  // Every action returns the updated booking, so the same piece of state holds
+  // the loaded copy and every later version of it.
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [history, setHistory] = useState<ReservationHistoryEntry[]>([]);
+  const [methods, setMethods] = useState<PaymentMethodOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
+  const [notice, setNotice] = useState<string | null>(
     (location.state as RouteState | null)?.message || null
   );
 
-  const error = actionError ?? loadError;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    reservationsApi
+      .get(id)
+      .then((response) => {
+        if (cancelled) return;
+        setReservation(response.data.reservation);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setReservation(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // The audit trail is reloaded after every action, because each one adds an
+  // entry to it.
+  const loadHistory = useCallback(() => {
+    reservationsApi
+      .history(id)
+      .then((response) => setHistory(response.data.history))
+      .catch(() => setHistory([]));
+  }, [id]);
+
+  useEffect(() => loadHistory(), [loadHistory]);
+
+  // Which ways of paying the server can actually handle. Asked for rather than
+  // hard-coded, so the form never offers a method that would be refused.
+  useEffect(() => {
+    paymentsApi
+      .methods()
+      .then((response) => setMethods(response.data.methods))
+      .catch(() => setMethods([]));
+  }, []);
 
   /** Every action updates the booking shown and refreshes its history. */
   const runReservationAction = async (
     action: () => Promise<ApiResponse<{ reservation: Reservation }>>
-  ) => {
-    const done = await run(action, (data) => setEdited(data.reservation));
-    reloadHistory();
-    return done;
+  ): Promise<boolean> => {
+    setBusy(true);
+    // The previous failure is no longer relevant once a new attempt starts.
+    setError(null);
+
+    try {
+      const response = await action();
+      setReservation(response.data.reservation);
+      setNotice(response.message);
+      return true;
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      return false;
+    } finally {
+      setBusy(false);
+      loadHistory();
+    }
   };
 
   if (loading) return <LoadingScreen message="Loading reservation..." />;
@@ -214,7 +251,7 @@ const ReservationDetailPage = () => {
 
             {reservation.additionalServices.length > 0 && (
               <div className="mt-6 border-t border-line pt-5">
-                <h3 className="mb-3 text-[0.85rem] font-semibold tracking-[0.05em] text-ink-muted uppercase">
+                <h3 className="mb-3 text-[0.85rem] font-semibold tracking-wider text-ink-muted uppercase">
                   Additional services
                 </h3>
                 <ul className="flex flex-col gap-2 text-sm">
@@ -249,7 +286,7 @@ const ReservationDetailPage = () => {
               reservation={reservation}
               canRecord={hasPermission(PERMISSIONS.PAYMENT_CREATE)}
               busy={busy}
-              methods={methodData ?? []}
+              methods={methods}
               // The payment response carries the updated booking, so recording
               // money goes through the same path as any other action. The bill
               // itself is issued by the server on first use.

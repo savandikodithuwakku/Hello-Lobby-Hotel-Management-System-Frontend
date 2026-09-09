@@ -1,10 +1,9 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, LifeBuoy } from "lucide-react";
-import type { TicketCategory, TicketPriority } from "../../../shared/api/types.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { Reservation, TicketCategory, TicketPriority } from "../../../shared/api/types.ts";
 import AppShell from "../../../shared/components/AppShell.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useCreateForm from "../../../shared/hooks/useCreateForm.ts";
 import {
   card,
   fieldGroup,
@@ -17,15 +16,14 @@ import {
 import { FormField } from "../../../shared/components/fields.tsx";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import SubmitButton from "../../../shared/components/SubmitButton.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, useAuthUser } from "../../auth/context/authContext.ts";
 import reservationsApi from "../../reservations/services/reservations.api.ts";
 import ticketsApi from "../services/tickets.api.ts";
 import {
   ROOM_BLOCKING_CATEGORIES,
   TICKET_CATEGORY_OPTIONS,
   TICKET_PRIORITY_OPTIONS,
-} from "../constants/frontdesk.ts";
+} from "../types.ts";
 
 /**
  * Raising a ticket.
@@ -49,39 +47,49 @@ const TicketCreatePage = () => {
   const [reservation, setReservation] = useState("");
   const [blocksRoom, setBlocksRoom] = useState(false);
 
-  const { submitting, error, submit } = useCreateForm();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
   // Bookings the caller may attach this to. A guest sees only their own,
   // because that is all the API returns them.
-  const { data: reservationData } = useApiData(
-    () =>
-      reservationsApi
-        .list({ status: canManage ? "checked_in" : "", limit: 100, sort: "-createdAt" })
-        .then((response) => response.data.reservations),
-    [canManage]
-  );
+  const [reservations, setReservations] = useState<Reservation[]>([]);
 
-  const reservations = reservationData ?? [];
+  useEffect(() => {
+    reservationsApi
+      .list({ status: canManage ? "checked_in" : "", limit: 100, sort: "-createdAt" })
+      .then((response) => setReservations(response.data.reservations))
+      .catch(() => setReservations([]));
+  }, [canManage]);
+
   const canBlock = canManage && ROOM_BLOCKING_CATEGORIES.includes(category);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
+    setSubmitting(true);
 
-    return submit(
-      () =>
-        ticketsApi.create({
-          subject,
-          description,
-          category,
-          ...(canManage ? { priority } : {}),
-          ...(reservation ? { reservation } : {}),
-          ...(canBlock && blocksRoom ? { blocksRoom: true } : {}),
-        }),
-      ({ ticket }) => ({
-        to: `/tickets/${ticket.id}`,
-        message: `Ticket ${ticket.reference} raised.`,
-      })
-    );
+    try {
+      const response = await ticketsApi.create({
+        subject,
+        description,
+        category,
+        ...(canManage ? { priority } : {}),
+        ...(reservation ? { reservation } : {}),
+        ...(canBlock && blocksRoom ? { blocksRoom: true } : {}),
+      });
+      const { ticket } = response.data;
+
+      // Replace the form in the history so the back button cannot resubmit it.
+      navigate(`/tickets/${ticket.id}`, {
+        replace: true,
+        state: { message: `Ticket ${ticket.reference} raised.` },
+      });
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

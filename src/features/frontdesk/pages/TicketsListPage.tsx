@@ -1,17 +1,18 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, BedDouble, LifeBuoy, Plus } from "lucide-react";
 import { FilterPanel, SearchField, SelectField } from "../../../shared/components/fields.tsx";
 import AppShell from "../../../shared/components/AppShell.tsx";
 import DataTable, { CELL, MUTED_CELL } from "../../../shared/components/DataTable.tsx";
 import Pagination from "../../../shared/components/Pagination.tsx";
-import useApiData from "../../../shared/hooks/useApiData.ts";
-import useUrlFilters from "../../../shared/hooks/useUrlFilters.ts";
 import { buttonPrimary, link } from "../../../shared/ui/styles.ts";
 import { formatResultCount } from "../../../shared/ui/format.ts";
 import AlertMessage from "../../../shared/components/AlertMessage.tsx";
 import RequirePermission from "../../auth/components/RequirePermission.tsx";
-import { PERMISSIONS } from "../../auth/constants/rbac.ts";
-import { useAuthUser } from "../../auth/context/authContext.ts";
+import { PERMISSIONS, useAuthUser } from "../../auth/context/authContext.ts";
+import type { ApiClientError } from "../../../shared/api/httpClient.ts";
+import type { Pagination as PaginationInfo, Ticket, TicketStatistics } from "../../../shared/api/types.ts";
+import type { FilterPatch } from "../../../shared/types.ts";
 import ticketsApi from "../services/tickets.api.ts";
 import {
   DEFAULT_TICKET_SORT,
@@ -22,7 +23,7 @@ import {
   TICKET_SORT_OPTIONS,
   TICKET_STATUS_OPTIONS,
   formatSince,
-} from "../constants/frontdesk.ts";
+} from "../types.ts";
 import { TicketPriorityPill, TicketStatusPill } from "../components/TicketPills.tsx";
 
 interface TicketFilterState {
@@ -93,23 +94,74 @@ const TicketsListPage = () => {
   const { hasPermission } = useAuthUser();
   const canManage = hasPermission(PERMISSIONS.FRONTDESK_TICKET_MANAGE);
 
-  const { filters, updateFilters, resetFilters } = useUrlFilters(readFilters);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = readFilters(searchParams);
+
+  const updateFilters = (patch: FilterPatch<TicketFilterState>) => {
+    const next = new URLSearchParams(searchParams);
+
+    Object.entries(patch).forEach(([key, value]) => {
+      // An empty value means "no filter", so the key leaves the URL entirely
+      // instead of sitting there as `?status=`.
+      if (value) next.set(key, value);
+      else next.delete(key);
+    });
+
+    // Narrowing the list while on page 5 would usually show nothing, so any
+    // change other than the page itself goes back to page one.
+    if (!("page" in patch)) next.delete("page");
+
+    setSearchParams(next, { replace: true });
+  };
+
   const { search, status, category, priority, active, overdue, sort, page } = filters;
 
-  const { data, loading, error } = useApiData(
-    () =>
-      ticketsApi
-        .list({ search, status, category, priority, active, overdue, sort, page, limit: PAGE_SIZE })
-        .then((response) => response.data),
-    [search, status, category, priority, active, overdue, sort, page]
-  );
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiClientError | null>(null);
 
-  const { data: statistics } = useApiData(
-    () => (canManage ? ticketsApi.statistics().then((response) => response.data) : Promise.resolve(null)),
-    [canManage]
-  );
+  useEffect(() => {
+    // If the filters change while a request is still in flight, the answer to
+    // the old request must not be written into state - otherwise a fast second
+    // search can be overwritten by a slow first one.
+    let cancelled = false;
+    setLoading(true);
 
-  const tickets = data?.tickets ?? [];
+    ticketsApi
+      .list({ search, status, category, priority, active, overdue, sort, page, limit: PAGE_SIZE })
+      .then((response) => {
+        if (cancelled) return;
+        setTickets(response.data.tickets);
+        setPagination(response.data.pagination);
+        setError(null);
+      })
+      .catch((apiError: ApiClientError) => {
+        if (cancelled) return;
+        setError(apiError);
+        setTickets([]);
+        setPagination(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [search, status, category, priority, active, overdue, sort, page]);
+
+  // The counts above the table are staff-only and do not move with the filters.
+  const [statistics, setStatistics] = useState<TicketStatistics | null>(null);
+
+  useEffect(() => {
+    if (!canManage) return;
+
+    ticketsApi
+      .statistics()
+      .then((response) => setStatistics(response.data))
+      .catch(() => setStatistics(null));
+  }, [canManage]);
 
   return (
     <AppShell
@@ -160,8 +212,8 @@ const TicketsListPage = () => {
       <FilterPanel
         label="Filter tickets"
         gridClassName="grid gap-4 md:grid-cols-2 lg:grid-cols-5"
-        resultSummary={formatResultCount(data?.pagination.total ?? null, "ticket")}
-        onReset={resetFilters}
+        resultSummary={formatResultCount(pagination?.total ?? null, "ticket")}
+        onReset={() => setSearchParams({}, { replace: true })}
         hasFilters={Boolean(search || status || category || priority || active || overdue)}
       >
         <SearchField
@@ -254,7 +306,7 @@ const TicketsListPage = () => {
       </DataTable>
 
       <Pagination
-        pagination={data?.pagination ?? null}
+        pagination={pagination}
         onPageChange={(next) => updateFilters({ page: String(next) })}
         disabled={loading}
       />

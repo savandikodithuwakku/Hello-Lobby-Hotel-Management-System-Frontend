@@ -10,7 +10,7 @@ import {
   input,
   select,
 } from "../../../shared/ui/styles.ts";
-import { HOUSEKEEPING_LABELS, OCCUPANCY_LABELS } from "../constants/rooms.ts";
+import { HOUSEKEEPING_LABELS, OCCUPANCY_LABELS } from "../types.ts";
 
 interface StatusChangePanelProps {
   current: HousekeepingStatus;

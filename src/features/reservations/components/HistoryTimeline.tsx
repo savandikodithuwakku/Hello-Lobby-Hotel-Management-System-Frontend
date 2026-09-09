@@ -1,6 +1,6 @@
 import type { ReservationHistoryEntry } from "../../../shared/api/types.ts";
 import { formatDateTime } from "../../../shared/ui/format.ts";
-import { STATUS_LABELS, statusPill } from "../constants/reservations.ts";
+import { STATUS_LABELS, statusPill } from "../types.ts";
 
 /**
  * The booking's audit trail: every status change in order, with who made it and

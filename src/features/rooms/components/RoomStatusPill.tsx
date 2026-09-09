@@ -5,7 +5,7 @@ import {
   OCCUPANCY_LABELS,
   housekeepingPill,
   occupancyPill,
-} from "../constants/rooms.ts";
+} from "../types.ts";
 
 /**
  * A room's two statuses, shown as two pills.

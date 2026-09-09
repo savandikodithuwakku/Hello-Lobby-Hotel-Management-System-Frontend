@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { setAccessToken, setSessionExpiredHandler } from "../../../shared/api/httpClient.ts";
+import {
+  refreshSession,
+  setAccessToken,
+  setSessionExpiredHandler,
+} from "../../../shared/api/httpClient.ts";
 import type { Role, SessionPayload, User } from "../../../shared/api/types.ts";
 import authApi, {
   type ChangePasswordPayload,
@@ -35,13 +39,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Silent sign-in: the refresh cookie survives a page reload even though the
   // access token (memory only) does not.
+  //
+  // This goes through the HTTP client's `refreshSession` rather than calling
+  // the endpoint directly, so the sign-in shares the one in-flight refresh with
+  // any 401 retry. It is also what makes React's development double-mount send
+  // a single request: the second mount joins the first mount's promise.
   useEffect(() => {
     let active = true;
 
-    authApi
-      .refresh()
-      .then((response) => {
-        if (active) applySession(response.data);
+    refreshSession()
+      .then((session) => {
+        if (active) applySession(session);
       })
       .catch(() => {
         if (active) clearSession();
@@ -150,13 +158,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const hasRole = useCallback(
-    (...roles: Role[]) => Boolean(user) && roles.includes(user!.role),
+    (...roles: Role[]) => user !== null && roles.includes(user.role),
     [user]
   );
 
   const hasPermission = useCallback(
     (...permissions: string[]) =>
-      Boolean(user) && permissions.some((permission) => user!.permissions?.includes(permission)),
+      user !== null && permissions.some((permission) => user.permissions?.includes(permission)),
     [user]
   );
 
