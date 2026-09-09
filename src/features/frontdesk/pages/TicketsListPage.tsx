@@ -258,6 +258,7 @@ const TicketsListPage = () => {
         isEmpty={tickets.length === 0}
         empty={{
           icon: LifeBuoy,
+          illustration: "/empty-bell.webp",
           title: "No tickets match these filters",
           hint: "Clear the filters to see every ticket, or raise one if a guest needs something.",
         }}

@@ -21,6 +21,11 @@ const HEADING_CELL = `${CELL} bg-surface-hover text-xs font-semibold tracking-[0
 type EmptyState = {
   /** Drawn above the message, to make the empty panel readable at a glance. */
   icon: LucideIcon;
+  /**
+   * Path to an illustration shown in place of `icon`. Most screens have one;
+   * the icon stays as the fallback for those that do not.
+   */
+  illustration?: string;
   /** One short line saying what is missing, e.g. "No rooms match these filters". */
   title: string;
   /** A sentence telling the reader what they can do about it. */
@@ -58,11 +63,16 @@ const DataTable = ({
   // than as "nothing found", so the reader is not told the list is empty
   // before it has actually been fetched.
   if (!loading && isEmpty) {
-    const { icon: Icon, title, hint } = empty;
+    const { icon: Icon, illustration, title, hint } = empty;
 
     return (
       <div className="flex flex-col items-center gap-2 border border-line px-6 py-14 text-center text-ink-dim">
-        <Icon size={28} aria-hidden="true" />
+        {illustration ? (
+          // Decorative: the title below says the same thing in words.
+          <img src={illustration} alt="" className="mb-2 size-24" />
+        ) : (
+          <Icon size={28} aria-hidden="true" />
+        )}
         <p className="font-semibold text-ink">{title}</p>
         <p className="max-w-[46ch] text-[0.88rem] text-ink-muted">{hint}</p>
       </div>

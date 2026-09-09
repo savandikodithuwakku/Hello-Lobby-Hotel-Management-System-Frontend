@@ -62,6 +62,14 @@ const RoomCatalogPage = () => {
 
   return (
     <AppShell title="Our rooms">
+      {/* The one screen in the app with a marketing job to do, so it is the
+          one screen that carries a photograph. */}
+      <img
+        src="/resort-hero.webp"
+        alt="The HelloLobby entrance at dusk"
+        className="mb-8 aspect-3/1 w-full object-cover"
+      />
+
       <div className={card}>
         <AlertMessage message={error?.message} errors={error?.errors} />
 

@@ -72,6 +72,7 @@ const ReservationTable = ({
     isEmpty={reservations.length === 0}
     empty={{
       icon: CalendarX,
+      illustration: "/empty-calendar.webp",
       title: "No reservations found",
       hint: emptyHint || "Try a different search term or date range, or clear the filters.",
     }}

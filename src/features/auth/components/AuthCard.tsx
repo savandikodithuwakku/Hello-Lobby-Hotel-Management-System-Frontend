@@ -9,9 +9,16 @@ interface AuthCardProps {
   footer?: ReactNode;
 }
 
-/** Shared shell for every auth screen so pages stay focused on behaviour. */
+/**
+ * Shared shell for every auth screen so pages stay focused on behaviour.
+ *
+ * From `xl` up the hotel illustration sits behind the page and the card moves
+ * off-centre to the left, which is the half of the artwork left deliberately
+ * empty. Below that width the card would start covering the building, so the
+ * illustration is dropped and the card simply centres on the plain canvas.
+ */
 const AuthCard = ({ title, subtitle, children, footer }: AuthCardProps) => (
-  <div className="flex min-h-screen items-center justify-center p-6">
+  <div className="flex min-h-screen items-center justify-center bg-canvas bg-cover bg-center bg-no-repeat p-6 xl:justify-start xl:bg-[url('/hotel-bg.webp')] xl:pl-[12%]">
     <div className="w-full max-w-120 border border-line bg-surface p-10">
       <h1 className="mb-2 text-center font-display text-[2.2rem] font-extrabold text-ink">
         {title}

@@ -48,6 +48,7 @@ const RoomTable = ({ rooms, loading }: { rooms: Room[]; loading: boolean }) => (
     isEmpty={rooms.length === 0}
     empty={{
       icon: DoorClosed,
+      illustration: "/empty-bed.webp",
       title: "No rooms match these filters",
       hint: "Try a different room number or status, or clear the filters to see the whole inventory.",
     }}

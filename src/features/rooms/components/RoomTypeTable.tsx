@@ -52,6 +52,7 @@ const RoomTypeTable = ({ roomTypes, loading }: { roomTypes: RoomType[]; loading:
     isEmpty={roomTypes.length === 0}
     empty={{
       icon: BedDouble,
+      illustration: "/empty-bed.webp",
       title: "No room types yet",
       hint: "Room types hold the price, occupancy and facilities that every room of that kind inherits. Add one before creating rooms.",
     }}

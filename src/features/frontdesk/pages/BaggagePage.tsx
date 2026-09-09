@@ -462,6 +462,7 @@ const BaggagePage = () => {
         isEmpty={items.length === 0}
         empty={{
           icon: Briefcase,
+          illustration: "/empty-trolley.webp",
           title: "Nothing matches these filters",
           hint: "Clear the filters to see every record, including bags already handed back.",
         }}
