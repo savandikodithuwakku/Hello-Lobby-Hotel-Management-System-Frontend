@@ -67,9 +67,39 @@ export interface CheckoutResult {
   transaction: Transaction;
   /** Where to send the guest. Null when the provider settled it immediately. */
   redirectUrl: string | null;
+  /** What the browser has to POST there. PayHere is reached by form, not link. */
+  redirectFields: Record<string, string> | null;
   expiresAt?: string | null;
   reservation?: Reservation;
 }
+
+/**
+ * Sends the guest to the provider's page. A gateway reached by form POST gets a
+ * hidden form built and submitted; one reached by a plain link is navigated to.
+ */
+export const goToProvider = ({ redirectUrl, redirectFields }: CheckoutResult): void => {
+  if (!redirectUrl) return;
+
+  if (!redirectFields) {
+    window.location.assign(redirectUrl);
+    return;
+  }
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = redirectUrl;
+
+  for (const [name, value] of Object.entries(redirectFields)) {
+    const field = document.createElement("input");
+    field.type = "hidden";
+    field.name = name;
+    field.value = value;
+    form.appendChild(field);
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+};
 
 export interface RefundResult {
   invoice: Invoice;

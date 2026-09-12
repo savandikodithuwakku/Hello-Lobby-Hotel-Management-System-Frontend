@@ -410,9 +410,9 @@ export interface PaymentMethodOption {
   /** True when paying sends the guest out to a provider rather than being
    * written down at the desk. */
   requiresRedirect: boolean;
-  /** True while the built-in stand-in gateway is handling online payments, so
-   * the UI can say plainly that no real money moved. */
-  simulated: boolean;
+  /** True while the gateway is in sandbox mode, so the UI can say plainly that
+   * no real money moves. */
+  sandbox: boolean;
 }
 
 export interface RefundQuote {

@@ -40,7 +40,7 @@ import RequirePermission from "../../auth/components/RequirePermission.tsx";
 import { PERMISSIONS, type Permission, useAuthUser } from "../../auth/context/authContext.ts";
 import type { RouteState } from "../../../shared/types.ts";
 import reservationsApi from "../services/reservations.api.ts";
-import paymentsApi from "../../payments/services/payments.api.ts";
+import paymentsApi, { goToProvider } from "../../payments/services/payments.api.ts";
 import frontdeskApi from "../../frontdesk/services/frontdesk.api.ts";
 import { RESERVATION_STATUSES, STATUS_HINTS, formatStay } from "../types.ts";
 import ReservationStatusPill from "../components/ReservationStatusPill.tsx";
@@ -145,6 +145,24 @@ const ReservationDetailPage = () => {
     } finally {
       setBusy(false);
       loadHistory();
+    }
+  };
+
+  /**
+   * Starts an online payment and leaves for the provider's page. The booking
+   * is not updated here: the provider calls the server back, and this page
+   * shows the new balance when the guest is sent back to it.
+   */
+  const payOnline = async (amount: number) => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      const response = await paymentsApi.startCheckout(id, amount);
+      goToProvider(response.data);
+    } catch (apiError) {
+      setError(apiError as ApiClientError);
+      setBusy(false);
     }
   };
 
@@ -293,6 +311,7 @@ const ReservationDetailPage = () => {
               onRecord={(input) =>
                 runReservationAction(() => paymentsApi.recordPayment(id, input))
               }
+              onPayOnline={payOnline}
             />
           </section>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Wallet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, Wallet } from "lucide-react";
 import type { PaymentMethod, PaymentMethodOption, Reservation } from "../../../shared/api/types.ts";
 import type { RecordPaymentInput } from "../../payments/services/payments.api.ts";
 import {
@@ -21,12 +21,13 @@ interface PaymentPanelProps {
   canRecord: boolean;
   busy: boolean;
   /**
-   * The methods the server says can be used. Only the ones taken in person are
-   * offered here - an online payment sends the guest out to a provider and is
-   * started from the guest's own screen, not from the front desk.
+   * The methods the server says can be used. The ones taken in person are
+   * written down by the front desk; an online one sends the guest out to the
+   * provider's page to pay there.
    */
   methods: PaymentMethodOption[];
   onRecord: (input: RecordPaymentInput) => void;
+  onPayOnline: (amount: number) => void;
 }
 
 const Line = ({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) => (
@@ -69,7 +70,14 @@ const Deadline = ({ label, date, settled }: { label: string; date: string; settl
  * and by when. Recording a payment that settles the advance confirms the
  * reservation server-side, so the panel says so before it is pressed.
  */
-const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: PaymentPanelProps) => {
+const PaymentPanel = ({
+  reservation,
+  canRecord,
+  busy,
+  methods,
+  onRecord,
+  onPayOnline,
+}: PaymentPanelProps) => {
   const { payment, pricing } = reservation;
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("cash");
@@ -78,6 +86,9 @@ const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: Payme
   // Cash, the hotel's own card terminal, a bank transfer that has landed: money
   // a person already took, which the front desk is only writing down.
   const overTheCounter = methods.filter((option) => option.available && !option.requiresRedirect);
+  // The gateway, when one is configured. Paying there is open to the guest too.
+  const online = methods.find((option) => option.available && option.requiresRedirect) ?? null;
+  const canPay = (canRecord || online !== null) && payment.balanceDue > 0;
 
   const value = Number(amount);
   const valid = Number.isFinite(value) && value > 0 && value <= payment.balanceDue;
@@ -114,11 +125,11 @@ const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: Payme
         </p>
       )}
 
-      {canRecord && payment.balanceDue > 0 && (
+      {canPay && (
         <div className="mt-6 border-t border-line pt-5">
           <div className={fieldGroup}>
             <label className={fieldLabel} htmlFor="payment-amount">
-              Record a payment
+              {canRecord ? "Record a payment" : "Pay now"}
             </label>
             <input
               id="payment-amount"
@@ -135,40 +146,50 @@ const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: Payme
             </p>
           </div>
 
-          <div className={fieldGroup}>
-            <label className={fieldLabel} htmlFor="payment-method">
-              How it was paid
-            </label>
-            <select
-              id="payment-method"
-              className={select}
-              value={method}
-              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
-            >
-              {overTheCounter.map((option) => (
-                <option key={option.method} value={option.method}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {canRecord && (
+            <>
+              <div className={fieldGroup}>
+                <label className={fieldLabel} htmlFor="payment-method">
+                  How it was paid
+                </label>
+                <select
+                  id="payment-method"
+                  className={select}
+                  value={method}
+                  onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+                >
+                  {overTheCounter.map((option) => (
+                    <option key={option.method} value={option.method}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className={fieldGroup}>
-            <label className={fieldLabel} htmlFor="payment-note">
-              Reference (optional)
-            </label>
-            <input
-              id="payment-note"
-              type="text"
-              className={input}
-              value={note}
-              placeholder="Bank slip or terminal receipt number"
-              onChange={(event) => setNote(event.target.value)}
-            />
-            <p className={fieldHint}>
-              Never enter card numbers here - only the reference the terminal or bank gave you.
+              <div className={fieldGroup}>
+                <label className={fieldLabel} htmlFor="payment-note">
+                  Reference (optional)
+                </label>
+                <input
+                  id="payment-note"
+                  type="text"
+                  className={input}
+                  value={note}
+                  placeholder="Bank slip or terminal receipt number"
+                  onChange={(event) => setNote(event.target.value)}
+                />
+                <p className={fieldHint}>
+                  Never enter card numbers here - only the reference the terminal or bank gave you.
+                </p>
+              </div>
+            </>
+          )}
+
+          {online?.sandbox && (
+            <p className="mb-4 border border-warning/30 bg-warning/10 px-3 py-2 text-[0.85rem] text-amber-700">
+              Online payments are in sandbox mode: test cards only, no real money moves.
             </p>
-          </div>
+          )}
 
           <div className={actionRow}>
             {!payment.advanceSettled && (
@@ -187,18 +208,30 @@ const PaymentPanel = ({ reservation, canRecord, busy, methods, onRecord }: Payme
             >
               Full balance
             </button>
-            <button
-              type="button"
-              className={buttonPrimary}
-              disabled={busy || !valid}
-              onClick={() => {
-                onRecord({ amount: value, method, externalReference: note });
-                setAmount("");
-                setNote("");
-              }}
-            >
-              <Wallet size={16} aria-hidden="true" /> {busy ? "Recording..." : "Record payment"}
-            </button>
+            {canRecord && (
+              <button
+                type="button"
+                className={buttonPrimary}
+                disabled={busy || !valid}
+                onClick={() => {
+                  onRecord({ amount: value, method, externalReference: note });
+                  setAmount("");
+                  setNote("");
+                }}
+              >
+                <Wallet size={16} aria-hidden="true" /> {busy ? "Recording..." : "Record payment"}
+              </button>
+            )}
+            {online && (
+              <button
+                type="button"
+                className={canRecord ? buttonSecondary : buttonPrimary}
+                disabled={busy || !valid}
+                onClick={() => onPayOnline(value)}
+              >
+                <CreditCard size={16} aria-hidden="true" /> Pay online
+              </button>
+            )}
           </div>
         </div>
       )}
